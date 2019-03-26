@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<I n="NeonOcean.Debug.STBL.System.Identifiers" s="16357755639433845350" i="snippet" m="snippets" c="NeonoceanGlobalLanguageIdentifiers">
+	<L n="value">
+		<U>
+			<T n="key">NeonOcean.Debug.System.Interactions.Standard.Documentation.Display_Name</T>
+			<T n="value">2821018436</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Interactions.Standard.Reset.Display_Name</T>
+			<T n="value">3176452547</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Interactions.Standard.Visit_Mod_Page.Display_Name</T>
+			<T n="value">3680294701</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Interaction_Categories.Debug</T>
+			<T n="value">2118578293</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Interaction_Categories.ModSettings</T>
+			<T n="value">1849235357</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Boolean.False</T>
+			<T n="value">3388627950</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Boolean.True</T>
+			<T n="value">1430015641</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LoggingModes.Burst</T>
+			<T n="value">2624488640</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LoggingModes.Continuous</T>
+			<T n="value">3045274353</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LogLevels.Debug</T>
+			<T n="value">1942598770</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LogLevels.Error</T>
+			<T n="value">1289385637</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LogLevels.Exception</T>
+			<T n="value">3516760786</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LogLevels.Info</T>
+			<T n="value">3893653617</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LogLevels.Warning</T>
+			<T n="value">626226195</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LogTypes.Burst</T>
+			<T n="value">910748506</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.LogTypes.Continuous</T>
+			<T n="value">2227776717</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Burst_Interval.Description</T>
+			<T n="value">237372355</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Burst_Interval.Name</T>
+			<T n="value">1325631112</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Burst_Level.Description</T>
+			<T n="value">4030352865</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Burst_Level.Name</T>
+			<T n="value">3493410752</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Continuous_Level.Description</T>
+			<T n="value">2726671377</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Continuous_Level.Name</T>
+			<T n="value">465305039</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Logging_Enabled.Description</T>
+			<T n="value">3389084731</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Logging_Enabled.Name</T>
+			<T n="value">1484912679</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Logging_Mode.Description</T>
+			<T n="value">3406081373</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Logging_Mode.Name</T>
+			<T n="value">2644103451</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Write_Chronological.Description</T>
+			<T n="value">4095865771</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Write_Chronological.Name</T>
+			<T n="value">1853319079</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Write_Groups.Description</T>
+			<T n="value">2896459538</T>
+		</U>
+		<U>
+			<T n="key">NeonOcean.Debug.System.Settings.Values.Write_Groups.Name</T>
+			<T n="value">3345486662</T>
+		</U>
+	</L>
+</I>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfAntiqueFileList>
+	<AntiqueFileList>
+		<Version>1.0.0</Version>
+		<Files>
+			<string>NeonOcean.Debug\License.txt</string>
+			<string>NeonOcean.Debug\NeonOcean.Debug.archive</string>
+			<string>NeonOcean.Debug\Read-Me.txt</string>
+			<string>NeonOcean.Debug\Data\Compatibility.json</string>
+			<string>NeonOcean.Debug\Data\Version.txt</string>
+		</Files>
+	</AntiqueFileList>
+</ArrayOfAntiqueFileList>

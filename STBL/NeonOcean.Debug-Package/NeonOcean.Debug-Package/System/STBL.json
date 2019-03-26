@@ -1,0 +1,15 @@
+{
+	"Identifier Prefix": "NeonOcean.Debug.System.",
+
+	"Identifiers File": {
+		"Name": "NeonOcean.Debug.STBL.System.Identifiers",
+		"Group": "3F7A0003",
+		"Instance": "E3026C164318DA66"
+	},
+	
+	"Source File": {
+		"Name": "NeonOcean.Debug.STBL.System.{0}",
+		"Group": "3F7A0003",
+		"Instance": "0706AC33C7044A18"
+	}
+}

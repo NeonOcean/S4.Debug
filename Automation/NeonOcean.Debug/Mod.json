@@ -1,0 +1,23 @@
+{
+	"Namespace": "NeonOcean.Debug",
+	"Github Name": "Debug",
+	"Packages": [
+		{
+			"File Name": "NeonOcean.Debug-Package.package",
+			"Merge Root": "NeonOcean.Debug"
+		}
+	],
+	"Publishing": {
+		"Installer File Name": "NeonOcean.Debug-Installer-v{0}.exe",
+		"Files File Name": "NeonOcean.Debug-Files-v{0}.zip",
+		"Sources File Name": "NeonOcean.Debug-Sources-v{0}.zip"
+	},
+	"Python": {
+		"Archive File Name": "NeonOcean.Debug.archive",
+		"Source Root": "",
+		"Source Target": "NeonOcean",
+		"Source Excluded": [],
+		"Merge Root": "NeonOcean.Debug"
+	},
+	"Uninstall": "NeonOcean.Debug/Uninstall.exe"
+}

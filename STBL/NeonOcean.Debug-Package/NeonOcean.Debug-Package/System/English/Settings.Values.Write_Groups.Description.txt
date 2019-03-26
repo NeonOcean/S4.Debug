@@ -1,0 +1,1 @@
+If enabled, reports will be separated into different log files based on their specified group.

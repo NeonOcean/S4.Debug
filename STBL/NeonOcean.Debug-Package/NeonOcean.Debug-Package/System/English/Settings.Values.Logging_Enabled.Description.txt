@@ -1,0 +1,1 @@
+Prevents reports from being written to the log if disabled.

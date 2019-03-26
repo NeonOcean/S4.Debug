@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfAntiqueVersionFile>
+	<AntiqueVersionFile>
+		<Path>NeonOcean.Debug\Data\Version.txt</Path>
+		<Format>PlainText</Format>
+	</AntiqueVersionFile>
+</ArrayOfAntiqueVersionFile>

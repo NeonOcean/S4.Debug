@@ -1,0 +1,6 @@
+Running Build.py will build the mod.
+This setup will only rebuild Python files, some types of files may not be rebuilt as the tools for doing so would not be included with this Automation setup.
+When merging mod files the setup will use already existing files instead.
+
+In order to build all file types you need go through the automation setup located elsewhere.
+https://github.com/NeonOcean/Environment
