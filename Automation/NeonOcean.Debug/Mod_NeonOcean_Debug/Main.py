@@ -1,12 +1,13 @@
 import os
 import subprocess
 import sys
+import shutil
 import time
 import typing
 from distutils import dir_util
 
 from Mod_NeonOcean_Debug import Mod, Paths
-from Mod_NeonOcean_Debug.Building import Merging, Package, Python, STBL
+from Mod_NeonOcean_Debug.Building import Merging, Package, Python, STBL, Misc
 from Mod_NeonOcean_Debug.Publishing import Distribution
 from Mod_NeonOcean_Debug.Tools import Exceptions
 
@@ -30,14 +31,7 @@ def BuildMod (modeName: str) -> bool:
 
 			return False
 
-	try:
-		Merging.Merge()
-	except Exception as e:
-		print("Failed to merge mod components.\n" + \
-			  "Mod: '" + Mod.GetCurrentMod().Namespace + "' \n" + \
-			  Exceptions.FormatException(e), file = sys.stderr)
-
-	return UpdateGameFiles()
+	return True
 
 def UpdateGameFiles () -> bool:
 	"""
@@ -53,13 +47,35 @@ def UpdateGameFiles () -> bool:
 				print("Failed to uninstall previous version.", file = sys.stderr)
 				return False
 
-			time.sleep(0.25)
+			time.sleep(0.05)
 			os.remove(Mod.GetCurrentMod().UninstallPath)
-			time.sleep(0.25)
+			time.sleep(0.05)
 
 		dir_util.copy_tree(Paths.BuildPath, Paths.S4ModsPath)
 	except Exception as e:
 		print("Failed to send mod to the Sims 4 mod folder.\n" + \
+			  "Mod: '" + Mod.GetCurrentMod().Namespace + "'\n" + \
+			  Exceptions.FormatException(e), file = sys.stderr)
+
+		return False
+
+	return True
+
+def UpdateGamePython () -> bool:
+	"""
+	Send currently built python files to the Sims 4 mod folder.
+	:return:
+	"""
+
+	try:
+		currentPythonFilePath = os.path.join(Paths.S4ModsPath, Mod.GetCurrentMod().PythonMergeRelativeRoot, Mod.GetCurrentMod().PythonBuildArchiveFileName)  # type: str
+
+		if os.path.exists(currentPythonFilePath):
+			os.remove(currentPythonFilePath)
+
+		shutil.copy(Mod.GetCurrentMod().PythonBuildArchiveFilePath, os.path.join(Paths.S4ModsPath, Mod.GetCurrentMod().PythonMergeRelativeRoot))
+	except Exception as e:
+		print("Failed to send python to the Sims 4 mod folder.\n" + \
 			  "Mod: '" + Mod.GetCurrentMod().Namespace + "'\n" + \
 			  Exceptions.FormatException(e), file = sys.stderr)
 
@@ -85,20 +101,28 @@ def BuildPublishing () -> bool:
 	return True
 
 _modBuildModes = {
-	"Quick": [
-		Python.BuildPython
+	"Python": [
+		Python.BuildPython,
+		Merging.Merge,
+		UpdateGamePython
 	],
 
 	"Normal": [
+		Misc.BuildMisc,
 		Python.BuildPython,
 		STBL.BuildSTBLChanges,
-		Package.BuildPackageChanges
+		Package.BuildPackageChanges,
+		Merging.Merge,
+		UpdateGameFiles
 	],
 
 	"Rebuild": [
+		Misc.BuildMisc,
 		Python.BuildPython,
 		STBL.BuildSTBLEverything,
-		Package.BuildPackageEverything
+		Package.BuildPackageEverything,
+		Merging.Merge,
+		UpdateGameFiles
 	]
 
 }  # type: typing.Dict[str, typing.List[typing.Callable]]

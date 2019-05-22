@@ -1,6 +1,6 @@
 {
 	"Namespace": "NeonOcean.Debug",
-	"Github Name": "Debug",
+	"Name": "Debug",
 	"Packages": [
 		{
 			"File Name": "NeonOcean.Debug-Package.package",

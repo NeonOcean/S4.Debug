@@ -4,12 +4,19 @@ from json import decoder
 
 from Mod_NeonOcean_Debug import Paths
 
+_mod = None  # type: Mod
+_modData = None  # type: typing.Dict[str, typing.Any]
+
 class Mod:
 	def __init__ (self, informationDictionary: typing.Dict[str, typing.Any]):
 		self.Namespace = informationDictionary["Namespace"]  # type: str
+		self.Name = informationDictionary["Name"]  # type: str
 		self.Version = self.GetModVersion()  # type: str
 
-		self.GithubName = informationDictionary["Github Name"]  # type: str
+		self.ChangesFilePath = os.path.join(Paths.RootPath, "Changes.md")  # type: str
+		self.PlansFilePath = os.path.join(Paths.RootPath, "Plans.md")  # type: str
+
+		self.GithubName = informationDictionary["Name"]  # type: str
 
 		self.Packages = list()  # type: typing.List[Package]
 
@@ -31,7 +38,8 @@ class Mod:
 		self.PythonSourceRootPath = os.path.normpath(os.path.join(self.PythonSourcePath, informationDictionary["Python"]["Source Root"]))
 		self.PythonSourceTargetPath = os.path.normpath(os.path.join(self.PythonSourcePath, informationDictionary["Python"]["Source Target"]))
 		self.PythonSourceExcludedFiles = informationDictionary["Python"]["Source Excluded"]  # type: typing.List[str]
-		self.PythonMergeRoot = os.path.join(Paths.BuildPath, informationDictionary["Python"]["Merge Root"])  # type: str
+		self.PythonMergeRelativeRoot = informationDictionary["Python"]["Merge Root"]  # type: str
+		self.PythonMergeRoot = os.path.join(Paths.BuildPath, self.PythonMergeRelativeRoot)  # type: str
 
 		for pythonExcludedFileIndex in range(0, len(self.PythonSourceExcludedFiles)):  # type: int
 			self.PythonSourceExcludedFiles[pythonExcludedFileIndex] = os.path.normpath(os.path.join(self.PythonSourceTargetPath, self.PythonSourceExcludedFiles[pythonExcludedFileIndex]))
@@ -73,23 +81,11 @@ class Package:
 def GetCurrentMod () -> Mod:
 	return _mod
 
-def GetVersion () -> str:
-	return GetCurrentMod().Version
-
-def GetGithubName () -> str:
-	return GetCurrentMod().GithubName
-
-def GetInstallerFilePath () -> str:
-	return GetCurrentMod().DistributionInstallerFilePath
-
-def GetFilesFilePath () -> str:
-	return GetCurrentMod().DistributionFilesFilePath
-
-def GetSourcesFileName () -> str:
-	return GetCurrentMod().SourcesFileName
+def GetModData () -> typing.Dict[str, typing.Any]:
+	return _modData
 
 def _Setup () -> None:
-	global _mod
+	global _mod, _modData
 
 	informationFilePath = os.path.join(os.path.dirname(os.path.dirname(os.path.normpath(__file__))), "Mod.json")  # type: str
 
@@ -99,6 +95,20 @@ def _Setup () -> None:
 	except Exception as e:
 		raise Exception("Failed to read mod information for '" + informationFilePath + "'. \n") from e
 
-_mod = None  # type: Mod
+	_modData = {
+		"Namespace": GetCurrentMod().Namespace,
+		"Name": GetCurrentMod().Name,
+		"Version": GetCurrentMod().Version,
+
+		"ChangesFilePath": GetCurrentMod().ChangesFilePath,
+		"PlansFilePath": GetCurrentMod().PlansFilePath,
+
+		"InstallerFilePath": GetCurrentMod().DistributionInstallerFilePath,
+		"FilesFilePath": GetCurrentMod().DistributionFilesFilePath,
+
+		"SourcesFileName": GetCurrentMod().SourcesFileName,
+
+		"GithubName": GetCurrentMod().GithubName
+	}  # type: typing.Dict[str, typing.Any]
 
 _Setup()

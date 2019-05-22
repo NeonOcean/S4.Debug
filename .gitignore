@@ -3,3 +3,10 @@
 **/.idea/**/misc.xml
 **/.idea/**/workspace.xml
 **/.idea/**/dictionaries
+
+Build
+Misc
+Packages/*/Build
+Publishing/Distribution
+Python/Build
+STBL/*/Build

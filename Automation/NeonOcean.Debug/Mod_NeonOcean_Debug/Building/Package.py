@@ -10,6 +10,9 @@ def BuildPackageChanges () -> bool:
 		return False
 
 	for package in Mod.GetCurrentMod().Packages:  # type: Mod.Package
+		baseFileExists = os.path.exists(package.SourceBaseFilePath)  # type: bool
+		loosePathExists = os.path.exists(package.SourceLoosePath)  # type: bool
+
 		packageManifest = None  # type: typing.Dict[str, typing.Union[float, typing.Dict[str, float]]]
 
 		if not os.path.exists(package.BuildFilePath):
@@ -32,49 +35,56 @@ def BuildPackageChanges () -> bool:
 		else:
 			filesChanged = False  # type: str
 
-			baseCurrentChangeTime = os.path.getmtime(package.SourceBaseFilePath)  # type: float
+			if baseFileExists:
+				baseCurrentChangeTime = os.path.getmtime(package.SourceBaseFilePath)  # type: float
 
-			if packageManifest["Base"] != os.path.getmtime(package.SourceBaseFilePath):
-				packageManifest["Base"] = baseCurrentChangeTime
-				filesChanged = True
-
-			for entryFileName, entryChangeTime in packageManifest["Loose"].items():  # type: str, float
-				entryFilePath = os.path.join(package.SourceLoosePath, entryFileName)  # type: str
-
-				if not os.path.exists(entryFilePath):
-					filesChanged = True
-					continue
-
-				entryCurrentChangeTime = os.path.getmtime(entryFilePath)  # type: float
-
-				if entryCurrentChangeTime != entryChangeTime:
-					packageManifest["Loose"][entryFileName] = entryCurrentChangeTime
+				if packageManifest["Base"] != os.path.getmtime(package.SourceBaseFilePath):
+					packageManifest["Base"] = baseCurrentChangeTime
 					filesChanged = True
 
-			for sourceFileName in os.listdir(package.SourceLoosePath):
-				sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)  # type: str
+			if loosePathExists:
+				for entryFileName, entryChangeTime in packageManifest["Loose"].items():  # type: str, float
+					entryFilePath = os.path.join(package.SourceLoosePath, entryFileName)  # type: str
 
-				if os.path.isfile(sourceFilePath):
-					sourceFileDuplicate = False  # type: bool
-
-					for entryFileName in packageManifest["Loose"].keys():  # type: str
-						if entryFileName.lower() == sourceFileName.lower():
-							sourceFileDuplicate = True
-							break
-
-					if not sourceFileDuplicate:
-						packageManifest["Loose"][sourceFileName] = os.path.getmtime(sourceFilePath)
+					if not os.path.exists(entryFilePath):
 						filesChanged = True
+						continue
+
+					entryCurrentChangeTime = os.path.getmtime(entryFilePath)  # type: float
+
+					if entryCurrentChangeTime != entryChangeTime:
+						packageManifest["Loose"][entryFileName] = entryCurrentChangeTime
+						filesChanged = True
+
+				for sourceFileName in os.listdir(package.SourceLoosePath):
+					sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)  # type: str
+
+					if os.path.isfile(sourceFilePath):
+						sourceFileDuplicate = False  # type: bool
+
+						for entryFileName in packageManifest["Loose"].keys():  # type: str
+							if entryFileName.lower() == sourceFileName.lower():
+								sourceFileDuplicate = True
+								break
+
+						if not sourceFileDuplicate:
+							packageManifest["Loose"][sourceFileName] = os.path.getmtime(sourceFilePath)
+							filesChanged = True
 
 			if filesChanged:
 				addingFiles = list()  # type: typing.List[str]
 
-				for sourceFileName in os.listdir(package.SourceLoosePath):
-					addingFiles.append(os.path.join(package.SourceLoosePath, sourceFileName))
+				if loosePathExists:
+					for sourceFileName in os.listdir(package.SourceLoosePath):
+						addingFiles.append(os.path.join(package.SourceLoosePath, sourceFileName))
 
-				Package.BuildPackage(package.BuildFilePath,
-									 baseFilePath = package.SourceBaseFilePath,
-									 addingFilePaths = addingFiles)
+				if baseFileExists:
+					Package.BuildPackage(package.BuildFilePath,
+										 baseFilePath = package.SourceBaseFilePath,
+										 addingFilePaths = addingFiles)
+				else:
+					Package.BuildPackage(package.BuildFilePath,
+										 addingFilePaths = addingFiles)
 
 				with open(package.BuildManifestFilePath, "w+") as packageManifestFile:
 					packageManifestFile.write(encoder.JSONEncoder(indent = "\t").encode(packageManifest))
@@ -91,20 +101,25 @@ def BuildPackageEverything () -> bool:
 	return True
 
 def _BuildPackageEverythingInternal (package: Mod.Package) -> None:
+	baseFileExists = os.path.exists(package.SourceBaseFilePath)  # type: bool
+	loosePathExists = os.path.exists(package.SourceLoosePath)  # type: bool
+
 	addingFilePaths = list()  # type: typing.List[str]
 
-	if not os.path.exists(package.SourceLoosePath):
-		return
+	if loosePathExists:
+		for sourceFileName in os.listdir(package.SourceLoosePath):
+			sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)
 
-	for sourceFileName in os.listdir(package.SourceLoosePath):
-		sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)
+			if os.path.isfile(sourceFilePath):
+				addingFilePaths.append(sourceFilePath)
 
-		if os.path.isfile(sourceFilePath):
-			addingFilePaths.append(sourceFilePath)
-
-	Package.BuildPackage(package.BuildFilePath,
-						 baseFilePath = package.SourceBaseFilePath,
-						 addingFilePaths = addingFilePaths)
+	if baseFileExists:
+		Package.BuildPackage(package.BuildFilePath,
+							 baseFilePath = package.SourceBaseFilePath,
+							 addingFilePaths = addingFilePaths)
+	else:
+		Package.BuildPackage(package.BuildFilePath,
+							 addingFilePaths = addingFilePaths)
 
 	packageManifest = dict()  # type: typing.Dict[str, typing.Union[float, typing.Dict[str, float]]]
 

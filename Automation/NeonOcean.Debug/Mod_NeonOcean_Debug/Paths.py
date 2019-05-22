@@ -26,6 +26,7 @@ AutomationPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.normpat
 RootPath = os.path.dirname(AutomationPath)  # type: str
 BuildPath = os.path.join(RootPath, "Build")  # type: str
 LoosePath = os.path.join(RootPath, "Loose")  # type: str
+MiscPath = os.path.join(RootPath, "Misc")  # type: str
 PackagePath = os.path.join(RootPath, "Packages")  # type: str
 
 PublishingPath = os.path.join(RootPath, "Publishing")  # type: str
