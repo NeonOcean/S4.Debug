@@ -1,14 +1,14 @@
 {
 	"Namespace": "NeonOcean.Debug",
 	"Name": "Debug",
-	"Load Controller": "NeonOcean.Main",
+	"LoadController": "NeonOcean.Main",
 	
 	"Author": "NeonOcean",
-	"Version": "1.1.0",
+	"Version": "1.1.1",
 	"Distribution": "NeonOcean",
 	"Rating": "Normal",
 
-	"Script Paths": [
+	"ScriptPaths": [
 		"NeonOcean.Debug/NeonOcean.Debug.archive"
 	],
 
@@ -18,8 +18,7 @@
 
 	"Compatibility": {
 		"NeonOcean.Main": {
-			"Lowest Version": "1.1.0",
-			"Highest Version": "1.1.0"
+			"LowestVersion": "1.2.0"
 		}
 	}
 }

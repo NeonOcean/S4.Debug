@@ -47,9 +47,8 @@ def UpdateGameFiles () -> bool:
 				print("Failed to uninstall previous version.", file = sys.stderr)
 				return False
 
-			time.sleep(0.05)
+			time.sleep(0.1)
 			os.remove(Mod.GetCurrentMod().UninstallPath)
-			time.sleep(0.05)
 
 		dir_util.copy_tree(Paths.BuildPath, Paths.S4ModsPath)
 	except Exception as e:

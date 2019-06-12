@@ -1,38 +1,36 @@
 import datetime
 import os
-import platform
+import sys
 import traceback
 import types
 import typing
-import uuid
 from xml.sax import saxutils
 
 import enum
-from NeonOcean.Debug import LoggingShared, Settings, This
-from NeonOcean.Main import Debug, Language, LoadingShared, Paths
-from NeonOcean.Main.Data import Global
-from NeonOcean.Main.Tools import Parse, Patcher, Timer
-from NeonOcean.Main.UI import Notifications
-from sims4 import common, log
-from ui import ui_dialog_notification
+import singletons
+from NeonOcean.Debug import Settings, This
+from NeonOcean.Main import Debug, DebugShared, LoadingShared, Paths, Language
+from NeonOcean.Main.Tools import Exceptions, Parse, Patcher, Timer
+from sims4 import log
 
 _preload = True  # type: bool
 _exiting = False  # type: bool
 
 _loggingEnabled = None  # type: bool
-_loggingMode = None  # type: LoggingShared.LoggingModes
 _writeChronological = None  # type: bool
 _writeGroups = None  # type: bool
-_burstLevel = None  # type: Debug.LogLevels
-_burstInterval = None  # type: float
-_continuousLevel = None  # type: Debug.LogLevels
+_logLevel = None  # type: Debug.LogLevels
+_logInterval = None  # type: float
 
-_burstTimer = None  # type: Timer.Timer
+_flushTicker = None  # type: Timer.Timer
 
 _logger = None  # type: _Logger
 
-class _Report:
-	def __init__ (self, logNumber: int, logTime: str, message: str, level: Debug.LogLevels, group: str = None, owner: str = None, exception: BaseException = None, logStack: bool = False, stacktrace: str = None):
+class Report:
+	def __init__ (self, logNumber: int, logTime: str, message: str,
+				  level: Debug.LogLevels, group: str = None, owner: str = None,
+				  exception: BaseException = None, logStack: bool = False,
+				  stacktrace: str = None, retryOnError: bool = False):
 		self.LogNumber = logNumber  # type: int
 		self.LogTime = logTime  # type: str
 		self.Message = message  # type: str
@@ -42,6 +40,7 @@ class _Report:
 		self.Exception = exception  # type: typing.Optional[BaseException]
 		self.LogStack = logStack  # type: bool
 		self.Stacktrace = stacktrace  # type: typing.Optional[str]
+		self.RetryOnError = retryOnError  # type: bool
 
 	def GetBytes (self, writeTime: str = None) -> bytes:
 		return self.GetText(writeTime).encode("utf-8")
@@ -76,12 +75,12 @@ class _Report:
 		messageText = saxutils.escape(messageText).replace("\n", "\n<!--\t\t-->")
 		logFormatting.append(messageText)
 
-		if self.Level <= Debug.LogLevels.Exception:
+		if self.Exception is not None:
 			logTemplate += "\t\t<Exception><!--\n" \
 						   "\t\t\t-->{}<!--\n" \
 						   "\t\t--></Exception>\n"
 
-			exceptionText = Debug.FormatException(self.Exception)  # type: str
+			exceptionText = DebugShared.FormatException(self.Exception)  # type: str
 			exceptionText = exceptionText.replace("\r\n", "\n")
 			exceptionText = saxutils.escape(exceptionText).replace("\n", "\n<!--\t\t-->")
 			logFormatting.append(exceptionText)
@@ -103,58 +102,40 @@ class _Report:
 
 		return logText
 
-class _Logger:
-	_logStartBytes = ("<?xml version=\"1.0\" encoding=\"utf-8\"?>" + os.linesep + "<LogFile>" + os.linesep).encode("utf-8")  # type: bytes
-	_logEndBytes = (os.linesep + "</LogFile>").encode("utf-8")  # type: bytes
+class _Logger(DebugShared.Logger):
+	WriteFailureNotificationTitle = Language.String(This.Mod.Namespace + ".System.Debug.Write_Failure_Notification.Title")
+	WriteFailureNotificationText = Language.String(This.Mod.Namespace + ".System.Debug.Write_Failure_Notification.Text")
 
-	_globalSessionID = "SessionID"  # type: str
-	_globalSessionStartTime = "SessionStartTime"  # type: str
-	_globalLoggingCount = "LoggingCount"  # type: str
-	_globalLoggingNamespaceCounts = "LoggingNamespaceCounts"  # type: str
-	_globalShownWriteFailureNotification = "ShownWriteFailureNotification"  # type: str
+	def __init__ (self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 
-	def __init__ (self, loggingRootPath: str):
-		"""
-		An object for logging debug information.
-		Logs will be written to a folder named either by the global NeonOcean debugging start time, or the time ChangeLogFile() was last called for this object.
+		self.CurrentLogNumber = 0
 
-		:param loggingRootPath: The root path all logs sent to this logger object will be written.
-		:type loggingRootPath: str
-		"""
+	def Log (self, message, level: Debug.LogLevels, group: str = None,
+			 owner: str = None, logStack: bool = False, exception: BaseException = None,
+			 frame: types.FrameType = None) -> None:
 
-		self.DebugGlobal = Global.GetModule("Debug")
+		if not isinstance(level, int):
+			raise Exceptions.IncorrectTypeException(level, "level", (int,))
 
-		if not hasattr(self.DebugGlobal, self._globalSessionID):
-			setattr(self.DebugGlobal, self._globalSessionID, uuid.UUID)
+		if not isinstance(group, str) and group is not None:
+			raise Exceptions.IncorrectTypeException(group, "group", (str,))
 
-		if not hasattr(self.DebugGlobal, self._globalSessionStartTime):
-			setattr(self.DebugGlobal, self._globalSessionStartTime, datetime.datetime.now())
+		if not isinstance(owner, str) and owner is not None:
+			raise Exceptions.IncorrectTypeException(owner, "owner", (str,))
 
-		if not hasattr(self.DebugGlobal, self._globalLoggingCount):
-			setattr(self.DebugGlobal, self._globalLoggingCount, 0)
+		if not isinstance(exception, BaseException) and exception is not None:
+			raise Exceptions.IncorrectTypeException(exception, "exception", (BaseException,))
 
-		if not hasattr(self.DebugGlobal, self._globalLoggingNamespaceCounts):
-			setattr(self.DebugGlobal, self._globalLoggingNamespaceCounts, dict())
+		if not isinstance(logStack, bool):
+			raise Exceptions.IncorrectTypeException(logStack, "logStack", (bool,))
 
-		if not hasattr(self.DebugGlobal, self._globalShownWriteFailureNotification):
-			setattr(self.DebugGlobal, self._globalShownWriteFailureNotification, False)
+		if isinstance(frame, singletons.DefaultType):
+			frame = None
 
-		self.ReportStorage = list()  # type: typing.List[_Report]
-		self.PreloadReportStorage = list()  # type: typing.List[_Report]
+		if not isinstance(frame, types.FrameType) and frame is not None:
+			raise Exceptions.IncorrectTypeException(frame, "frame", (types.FrameType,))
 
-		self.CurrentLogNumber = 0  # type: int
-
-		self._loggingRootPath = loggingRootPath  # type: str
-		self._loggingDirectoryName = Debug.GetDateTimePathString(getattr(self.DebugGlobal, self._globalSessionStartTime))  # type: str
-
-		self._writeFailureCount = 0  # type: int
-		self._writeFailureLimit = 2  # type: int
-		self._isContinuation = False  # type: bool
-
-		self._sessionInformation = self._CreateSessionInformation()  # type: str
-		self._modInformation = self._CreateModsInformation()  # type: str
-
-	def Log (self, message, level: Debug.LogLevels, group: str = None, owner: str = None, logStack: bool = False, exception: BaseException = None, frame: types.FrameType = None) -> None:
 		if self._writeFailureCount >= self._writeFailureLimit:
 			return
 
@@ -164,137 +145,35 @@ class _Logger:
 		if frame is log.DEFAULT:
 			frame = None
 
-		report = _Report(self.CurrentLogNumber, datetime.datetime.now().isoformat(), str(message), level = level, group = str(group), owner = owner, exception = exception, logStack = logStack, stacktrace = str.join("", traceback.format_stack(f = frame)))  # type: _Report
+		if exception is None:
+			exception = sys.exc_info()[1]
+
 		self.CurrentLogNumber += 1
 
-		if This.Mod.Loading and _preload:
-			self.PreloadReportStorage.append(report)
-			return
-
-		if _loggingMode == LoggingShared.LoggingModes.Burst:
-			if level > _burstLevel:
-				return
-		elif _loggingMode == LoggingShared.LoggingModes.Continuous:
-			if level > _continuousLevel:
+		if _logLevel is not None:
+			if level > _logLevel:
 				return
 
-		if _exiting:
-			self.LogReport(report)
+		report = Report(self.CurrentLogNumber, datetime.datetime.now().isoformat(), str(message),
+						level = level, group = str(group), owner = owner,
+						exception = exception, logStack = logStack, stacktrace = str.join("", traceback.format_stack(f = frame)))  # type: Report
 
-		if _loggingMode == LoggingShared.LoggingModes.Burst:
-			self.ReportStorage.append(report)
+		self._reportStorage.append(report)
 
-			if level <= Debug.LogLevels.Error:
-				self.Flush()
-		elif _loggingMode == LoggingShared.LoggingModes.Continuous:
-			self.LogReport(report)
+		if _logInterval == 0:
+			self.Flush()
 
-	def Flush (self) -> None:
-		if _loggingEnabled:
-			self.LogAllReports(self.ReportStorage)
+	def _FilterReports (self, reports: typing.List[Report]) -> typing.List[Report]:
+		def Filter (report: Report) -> bool:
+			if _logLevel is not None:
+				if report.Level > _logLevel:
+					return False
 
-		self.ReportStorage = list()
+			return True
 
-	def FlushPreload (self) -> None:
-		if _loggingEnabled:
-			reportIndex = 0  # type: int
-			while reportIndex < len(self.PreloadReportStorage):
-				if _loggingMode == LoggingShared.LoggingModes.Burst:
-					if self.PreloadReportStorage[reportIndex].Level > _burstLevel:
-						self.PreloadReportStorage.pop(reportIndex)
-						continue
-				elif _loggingMode == LoggingShared.LoggingModes.Continuous:
-					if self.PreloadReportStorage[reportIndex].Level > _continuousLevel:
-						self.PreloadReportStorage.pop(reportIndex)
-						continue
+		return list(filter(Filter, reports))
 
-				reportIndex += 1
-
-			self.LogAllReports(self.PreloadReportStorage)
-
-		self.PreloadReportStorage = list()
-
-	def LogReport (self, report: _Report, retryOnError: bool = True) -> None:
-		if not _writeChronological and not _writeGroups:
-			return
-
-		logTextBytes = report.GetBytes()  # type: bytes
-
-		logDirectory = os.path.join(self.GetLoggingRootPath(), self.GetLoggingDirectoryName())  # type: str
-		groupsLogDirectory = os.path.join(logDirectory, "Groups")  # type: str
-
-		try:
-			if not os.path.exists(logDirectory):
-				os.makedirs(logDirectory)
-
-			sessionFilePath = os.path.join(logDirectory, "Session.txt")  # type: str
-			modsFilePath = os.path.join(logDirectory, "Mods.txt")  # type: str
-
-			if not os.path.exists(sessionFilePath):
-				with open(sessionFilePath, mode = "w+") as sessionFile:
-					sessionFile.write(self._sessionInformation)
-
-			if not os.path.exists(modsFilePath):
-				with open(modsFilePath, mode = "w+") as modsFile:
-					modsFile.write(self._modInformation)
-
-			chronologicalFilePath = os.path.join(logDirectory, "Log.xml")  # type: str
-			chronologicalFirstWrite = False  # type: bool
-
-			if _writeChronological:
-				if not os.path.exists(chronologicalFilePath):
-					chronologicalFirstWrite = True
-				else:
-					self._VerifyLogFile(chronologicalFilePath)
-
-				if chronologicalFirstWrite:
-					with open(chronologicalFilePath, mode = "wb+") as chronologicalFile:
-						chronologicalFile.write(self._logStartBytes)
-						chronologicalFile.write(logTextBytes)
-						chronologicalFile.write(self._logEndBytes)
-				else:
-					with open(chronologicalFilePath, "r+b") as chronologicalFile:
-						chronologicalFile.seek(-len(self._logEndBytes), os.SEEK_END)
-						chronologicalFile.write((os.linesep + os.linesep).encode("utf-8") + logTextBytes)
-						chronologicalFile.write(self._logEndBytes)
-
-			groupFilePath = os.path.join(groupsLogDirectory, str(report.Group) + ".xml")  # type: str
-			groupFirstWrite = False  # type: bool
-
-			if _writeGroups:
-				if not os.path.exists(groupFilePath):
-					groupFirstWrite = True
-				else:
-					self._VerifyLogFile(chronologicalFilePath)
-
-				if groupFirstWrite:
-					with open(groupFilePath, mode = "wb+") as groupFile:
-						groupFile.write(self._logStartBytes)
-						groupFile.write(logTextBytes)
-						groupFile.write(self._logEndBytes)
-				else:
-					with open(groupFilePath, "r+b") as groupFile:
-						groupFile.seek(-len(self._logEndBytes), os.SEEK_END)
-						groupFile.write((os.linesep + os.linesep).encode("utf-8") + logTextBytes)
-						groupFile.write(self._logEndBytes)
-		except Exception as e:
-			self._writeFailureCount += 1
-
-			if not getattr(self.DebugGlobal, self._globalShownWriteFailureNotification):
-				self._ShowWriteFailureDialog(e)
-				setattr(self.DebugGlobal, self._globalShownWriteFailureNotification, True)
-
-			if self._writeFailureCount < self._writeFailureLimit:
-				self.ChangeLogFile()
-
-				Debug.Log("Forced to start a new log file after encountering a write error.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e, retryOnError = False)
-
-				if retryOnError:
-					self.LogReport(report, retryOnError = False)
-
-			return
-
-	def LogAllReports (self, reports: typing.List[_Report], retryOnError: bool = True) -> None:
+	def _LogAllReports (self, reports: typing.List[Report]) -> None:
 		if not _writeChronological and not _writeGroups:
 			return
 
@@ -306,7 +185,7 @@ class _Logger:
 
 		writeTime = datetime.datetime.now().isoformat()  # type: str
 
-		for report in reports:  # type: _Report
+		for report in reports:  # type: Report
 			group = str(report.Group)  # type: str
 			reportTextBytes = report.GetBytes(writeTime = writeTime)  # type: bytes
 
@@ -328,6 +207,10 @@ class _Logger:
 		try:
 			if not os.path.exists(logDirectory):
 				os.makedirs(logDirectory)
+
+			if _writeGroups:
+				if not os.path.exists(groupsLogDirectory):
+					os.makedirs(groupsLogDirectory)
 
 			sessionFilePath = os.path.join(logDirectory, "Session.txt")  # type: str
 			modsFilePath = os.path.join(logDirectory, "Mods.txt")  # type: str
@@ -360,6 +243,8 @@ class _Logger:
 						chronologicalFile.write((os.linesep + os.linesep).encode("utf-8") + chronologicalTextBytes)
 						chronologicalFile.write(self._logEndBytes)
 
+
+
 			for groupName, groupTextBytes in groupsTextBytes.items():  # type: str, bytes
 				groupFilePath = os.path.join(groupsLogDirectory, groupName + ".xml")  # type: str
 				groupFirstWrite = False  # type: bool
@@ -390,121 +275,18 @@ class _Logger:
 			if self._writeFailureCount < self._writeFailureLimit:
 				self.ChangeLogFile()
 
-				Debug.Log("Forced to start a new log file after encountering a write error.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e, retryOnError = False)
+				retryingReports = filter(lambda filterReport: filterReport.RetryOnError, reports)  # type: typing.List[Report]
+				retryingReportsLength = len(retryingReports)  # type: int
 
-				if retryOnError:
-					self.LogAllReports(reports, retryOnError = False)
+				Debug.Log("Forced to start a new log file after encountering a write error. " + str(len(reports) - retryingReportsLength) + " reports where lost because of this.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, retryOnError = False)
+
+				for retryingReport in retryingReports:
+					retryingReport.RetryOnError = False
+
+				if retryingReportsLength != 0:
+					self._LogAllReports(reports)
 
 			return
-
-	def GetLoggingRootPath (self) -> str:
-		return self._loggingRootPath
-
-	def GetLoggingDirectoryName (self) -> str:
-		return self._loggingDirectoryName
-
-	def IsContinuation (self) -> bool:
-		return self._isContinuation
-
-	def ChangeLogFile (self) -> None:
-		"""
-		Change the current directory name for a new one. The new directory name will be the time this method was called.
-		:rtype: None
-		"""
-
-		self._loggingDirectoryName = Debug.GetDateTimePathString(datetime.datetime.now())
-		self._isContinuation = True
-
-		self._sessionInformation = self._CreateSessionInformation()
-		self._modInformation = self._CreateModsInformation()
-
-	def _CreateSessionInformation (self) -> str:
-		try:
-			sessionTemplate = "Debugging session ID '{}'\n" \
-							  "Debugging session start time '{}'\n" \
-							  "Log is a continuation of another '{}'\n" \
-							  "\n" \
-							  "Operation system '{}'\n\n" \
-							  "Version '{}'\n" \
-							  "\n" \
-							  "Installed Packs:\n" \
-							  "{}"  # type: str
-
-			installedPacksText = ""  # type: str
-
-			for packTuple in common.Pack.items():  # type: typing.Tuple[str, common.Pack]
-				if packTuple[1] == common.Pack.BASE_GAME:
-					continue
-
-				packAvailable = common.is_available_pack(packTuple[1])
-
-				if packAvailable:
-					if installedPacksText != "":
-						installedPacksText += "\n"
-
-					installedPacksText += packTuple[0]
-
-			sessionFormatting = (str(getattr(self.DebugGlobal, self._globalSessionID)),
-								 str(getattr(self.DebugGlobal, self._globalSessionStartTime)),
-								 self.IsContinuation(),
-								 platform.system(),
-								 platform.version(),
-								 installedPacksText)
-
-			return sessionTemplate.format(*sessionFormatting)
-		except Exception as e:
-			Debug.Log("Failed to get session information", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
-			return "Failed to get session information"
-
-	def _CreateModsInformation (self) -> str:
-		try:
-			modFolderString = os.path.split(Paths.ModsPath)[1] + " {" + os.path.split(Paths.ModsPath)[1] + "}"  # type: str
-
-			for directoryRoot, directoryNames, fileNames in os.walk(Paths.ModsPath):  # type: str, list, list
-				depth = 1
-
-				if directoryRoot != Paths.ModsPath:
-					depth = len(directoryRoot.replace(Paths.ModsPath + os.path.sep, "").split(os.path.sep)) + 1  # type: int
-
-				indention = "\t" * depth  # type: str
-
-				newString = ""  # type: str
-
-				for directory in directoryNames:
-					newString += "\n" + indention + directory + " {" + directory + "}"
-
-				for file in fileNames:
-					newString += "\n" + indention + file + " (" + str(os.path.getsize(os.path.join(directoryRoot, file))) + " B)"
-
-				if len(newString) == 0:
-					newString = "\n"
-
-				newString += "\n"
-
-				modFolderString = modFolderString.replace("{" + os.path.split(directoryRoot)[1] + "}", "{" + newString + "\t" * (depth - 1) + "}", 1)
-
-			return modFolderString
-		except Exception as e:
-			Debug.Log("Failed to get mod information", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
-			return "Failed to get mod information"
-
-	def _VerifyLogFile (self, logFilePath: str) -> None:
-		with open(logFilePath, "rb") as logFile:
-			if self._logStartBytes != logFile.read(len(self._logStartBytes)):
-				raise Exception("The start of the log file doesn't match what was expected.")
-
-			logFile.seek(-len(self._logEndBytes), os.SEEK_END)
-
-			if self._logEndBytes != logFile.read():
-				raise Exception("The end of the log file doesn't match what was expected.")
-
-	@staticmethod
-	def _ShowWriteFailureDialog (exception: Exception) -> None:
-		Notifications.ShowNotification(queue = True,
-									   title = lambda *args, **kwargs: Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Debug.Write_Notification.Title"),
-									   text = lambda *args, **kwargs: Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Debug.Write_Notification.Text", Debug.FormatException(exception)),
-									   expand_behavior = ui_dialog_notification.UiDialogNotification.UiDialogNotificationExpandBehavior.FORCE_EXPAND,
-									   urgency = ui_dialog_notification.UiDialogNotification.UiDialogNotificationUrgency.URGENT)
 
 def _Setup () -> None:
 	global _logger
@@ -512,7 +294,7 @@ def _Setup () -> None:
 	_logger = _Logger(os.path.join(Paths.DebugPath, "Logs"))
 
 def _OnStart (cause: LoadingShared.LoadingCauses) -> None:
-	global _preload, _loggingEnabled, _loggingMode, _writeChronological, _writeGroups, _burstLevel, _burstInterval, _continuousLevel
+	global _preload, _loggingEnabled, _writeChronological, _writeGroups, _logLevel, _logInterval
 
 	if cause != LoadingShared.LoadingCauses.Reloading:
 		Patcher.Patch(log, "debug", _Debug)
@@ -533,7 +315,7 @@ def _OnStart (cause: LoadingShared.LoadingCauses) -> None:
 	Settings.RegisterUpdate(_UpdateSettings)
 
 	_preload = False
-	_logger.FlushPreload()
+	_logger.Flush()
 
 def _OnStop (cause: LoadingShared.UnloadingCauses) -> None:
 	global _exiting
@@ -546,115 +328,99 @@ def _OnStop (cause: LoadingShared.UnloadingCauses) -> None:
 		_exiting = True
 
 def _UpdateSettings () -> None:
-	global _loggingEnabled, _loggingMode, _writeChronological, _writeGroups, _burstLevel, _burstInterval, _continuousLevel
+	global _loggingEnabled, _writeChronological, _writeGroups, _logLevel, _logInterval
 
-	loggingEnabledChange = Settings.Get(Settings.Logging_Enabled.Key)  # type: bool
-	loggingModeChange = Settings.Get(Settings.Logging_Mode.Key)  # type: str
-	loggingModeChange = Parse.ParseEnum(loggingModeChange, LoggingShared.LoggingModes)  # type: LoggingShared.LoggingModes
-	writeChronologicalChange = Settings.Get(Settings.Write_Chronological.Key)  # type: bool
-	writeGroupsChange = Settings.Get(Settings.Write_Groups.Key)  # type: bool
-	burstLevelChange = Settings.Get(Settings.Burst_Level.Key)  # type: str
-	burstLevelChange = Parse.ParseEnum(burstLevelChange, Debug.LogLevels)  # type: LoggingShared.LoggingModes
-	burstIntervalChange = Settings.Get(Settings.Burst_Interval.Key)  # type: float
-	continuousLevelChange = Settings.Get(Settings.Continuous_Level.Key)  # type: str
-	continuousLevelChange = Parse.ParseEnum(continuousLevelChange, Debug.LogLevels)  # type: LoggingShared.LoggingModes
+	loggingEnabledChange = Settings.Get(Settings.LoggingEnabled.Key)  # type: bool
+	writeChronologicalChange = Settings.Get(Settings.WriteChronological.Key)  # type: bool
+	writeGroupsChange = Settings.Get(Settings.WriteGroups.Key)  # type: bool
+	logLevelChange = Settings.Get(Settings.LogLevel.Key)  # type: str
+	logLevelChange = Parse.ParseEnum(logLevelChange, Debug.LogLevels)  # type: Debug.LogLevels
+	logIntervalChange = Settings.Get(Settings.LogInterval.Key)  # type: float
 
 	loggingEnabledLast = _loggingEnabled  # type: bool
-	loggingModeLast = _loggingMode  # type: enum.EnumBase
 	writeChronologicalLast = _writeChronological  # type: bool
 	writeGroupsLast = _writeGroups  # type: bool
-	burstLevelLast = _burstLevel  # type: enum.EnumBase
-	burstIntervalLast = _burstInterval  # type: float
-	continuousLevelLast = _continuousLevel  # type: enum.EnumBase
+	logLevelLast = _logLevel  # type: enum.EnumBase
+	logIntervalLast = _logInterval  # type: float
 
 	if loggingEnabledLast != loggingEnabledChange:
 		if loggingEnabledLast is not None:
-			Debug.Log("Updating setting '" + Settings.Logging_Enabled.Key + "' to '" + str(loggingEnabledChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
+			Debug.Log("Updating setting '" + Settings.LoggingEnabled.Key + "' to '" + str(loggingEnabledChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
 
 		_loggingEnabled = loggingEnabledChange
 
-	if loggingModeLast != loggingModeChange:
-		if loggingModeLast is not None:
-			Debug.Log("Updating setting '" + Settings.Logging_Mode.Key + "' to '" + str(loggingModeChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
-
-		_loggingMode = loggingModeChange
-
 	if writeChronologicalLast != writeChronologicalChange:
 		if writeChronologicalLast is not None:
-			Debug.Log("Updating setting '" + Settings.Write_Chronological.Key + "' to '" + str(writeChronologicalChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
+			Debug.Log("Updating setting '" + Settings.WriteChronological.Key + "' to '" + str(writeChronologicalChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
 
 		_writeChronological = writeChronologicalChange
 
 	if writeGroupsLast != writeGroupsChange:
 		if writeGroupsLast is not None:
-			Debug.Log("Updating setting '" + Settings.Write_Groups.Key + "' to '" + str(writeGroupsChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
+			Debug.Log("Updating setting '" + Settings.WriteGroups.Key + "' to '" + str(writeGroupsChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
 
 		_writeGroups = writeGroupsChange
 
-	if burstLevelLast != burstLevelChange:
-		if burstLevelLast is not None:
-			Debug.Log("Updating setting '" + Settings.Burst_Level.Key + "' to '" + str(burstLevelChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
+	if logLevelLast != logLevelChange:
+		if logLevelLast is not None:
+			Debug.Log("Updating setting '" + Settings.LogLevel.Key + "' to '" + str(logLevelChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
 
-		_burstLevel = burstLevelChange
+		_logLevel = logLevelChange
 
-	if burstIntervalLast != burstIntervalChange:
-		if burstIntervalLast is not None:
-			Debug.Log("Updating setting '" + Settings.Burst_Interval.Key + "' to '" + str(burstIntervalChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
+	if logIntervalLast != logIntervalChange:
+		if logIntervalLast is not None:
+			Debug.Log("Updating setting '" + Settings.LogInterval.Key + "' to '" + str(logIntervalChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
 
-		_burstInterval = burstIntervalChange
+		_logInterval = logIntervalChange
 
-	if continuousLevelLast != continuousLevelChange:
-		if continuousLevelLast is not None:
-			Debug.Log("Updating setting '" + Settings.Continuous_Level.Key + "' to '" + str(continuousLevelChange) + "'.", This.Mod.Namespace, Debug.LogLevels.Info, group = This.Mod.Namespace, owner = __name__)
-
-		_continuousLevel = continuousLevelChange
-
-	global _burstTimer
+	global _flushTicker
 
 	if not loggingEnabledLast and loggingEnabledChange:
-		_logger.ChangeLogFile()
+		if loggingEnabledLast is not None:
+			_logger.ChangeLogFile()
 
-		if _loggingMode == LoggingShared.LoggingModes.Burst:
-			if _burstInterval > 0:
-				if _burstTimer is not None:
-					_burstTimer.Stop()
-					_burstTimer = None
+		if _flushTicker is not None:
+			_flushTicker.Stop()
+			_flushTicker = None
 
-				_burstTimer = Timer.Timer(_burstInterval, _logger.Flush, repeat = True)
-				_burstTimer.start()
+		if _logInterval != 0:
+			_flushTicker = Timer.Timer(_logInterval, _logger.Flush, repeat = True)
+			_flushTicker.start()
+
 	elif loggingEnabledLast and not loggingEnabledChange:
-		if _loggingMode == LoggingShared.LoggingModes.Burst:
-			if _burstInterval > 0 and _burstTimer is not None:
-				_burstTimer.Stop()
-				_burstTimer = None
-
-			_logger.Flush()
-
-	elif (loggingModeLast == LoggingShared.LoggingModes.Continuous or loggingModeLast is None) and loggingModeChange == LoggingShared.LoggingModes.Burst:
-		if _burstInterval > 0:
-			if _burstTimer is not None:
-				_burstTimer.Stop()
-				_burstTimer = None
-
-			_burstTimer = Timer.Timer(_burstInterval, _logger.Flush, repeat = True)
-			_burstTimer.start()
-	elif loggingModeLast == LoggingShared.LoggingModes.Burst and loggingModeChange == LoggingShared.LoggingModes.Continuous:
-		if _burstInterval > 0 and _burstTimer is not None:
-			_burstTimer.Stop()
-			_burstTimer = None
+		if _flushTicker is not None:
+			_flushTicker.Stop()
+			_flushTicker = None
 
 		_logger.Flush()
 
-	elif burstIntervalLast != burstIntervalChange:
-		if _loggingMode == LoggingShared.LoggingModes.Burst:
-			if burstIntervalChange > 0:
-				if _burstTimer is None:
-					_burstTimer = Timer.Timer(_burstInterval, _logger.Flush, repeat = True)
-					_burstTimer.start()
-				else:
-					_burstTimer.Interval = _burstInterval
+	elif (logIntervalLast == 0 or logIntervalLast is None) and logIntervalChange != 0:
+		if _flushTicker is not None:
+			_flushTicker.Stop()
+			_flushTicker = None
 
-	if loggingModeLast == LoggingShared.LoggingModes.Burst and ((writeChronologicalLast and not writeChronologicalChange) or (writeGroupsLast and not writeGroupsChange)):
+		_flushTicker = Timer.Timer(_logInterval, _logger.Flush, repeat = True)
+		_flushTicker.start()
+
+	elif logIntervalLast != 0 and logIntervalChange == 0:
+		if _flushTicker is not None:
+			_flushTicker.Stop()
+			_flushTicker = None
+
+		_logger.Flush()
+
+	elif logIntervalLast != logIntervalChange:
+		if logIntervalChange != 0:
+			if _flushTicker is None:
+				_flushTicker = Timer.Timer(_logInterval, _logger.Flush, repeat = True)
+				_flushTicker.start()
+			else:
+				_flushTicker.Interval = _logInterval
+
+	if loggingEnabledLast is None and not loggingEnabledChange:
+		_logger._reportStorage = list()
+
+	if logIntervalLast != 0 and ((writeChronologicalLast and not writeChronologicalChange) or (writeGroupsLast and not writeGroupsChange)):
 		_logger.Flush()
 
 def _Debug (group: str, message: str, *args, owner: str = None, trigger_breakpoint: bool = False) -> None:
@@ -721,6 +487,6 @@ def _Exception (group: str, message: str, *args, exc: BaseException = None, log_
 	if use_format_stack:
 		pass
 
-	_logger.Log(message, Debug.ConvertEALevelToLogLevel(level), group = group, owner = owner, exception = exc, logStack = log_current_callstack, frame = frame)
+	_logger.Log(message, DebugShared.ConvertEALevelToLogLevel(level), group = group, owner = owner, exception = exc, logStack = log_current_callstack, frame = frame)
 
 _Setup()

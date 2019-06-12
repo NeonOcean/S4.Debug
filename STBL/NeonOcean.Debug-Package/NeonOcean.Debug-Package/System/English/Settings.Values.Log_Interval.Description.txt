@@ -1,0 +1,1 @@
+The time in seconds between when reports are written. When this setting is zero, all reports will be logged as soon as possible. Very low values may be interpreted as zero.

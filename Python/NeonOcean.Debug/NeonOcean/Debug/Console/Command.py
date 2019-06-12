@@ -90,10 +90,10 @@ def _Help (_connection: int = None) -> None:
 				helpText += consoleCommand.Alias[consoleCommand.HelpAliasPosition]
 
 		commands.cheat_output(helpText + "\n", _connection)
-	except Exception as e:
+	except:
 		output = commands.CheatOutput(_connection)
 		output("Failed to show help information.")
 
-		Debug.Log("Failed to show help information.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+		Debug.Log("Failed to show help information.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 
 _Setup()

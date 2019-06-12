@@ -47,9 +47,9 @@ def _PrintNames (_connection: int = None) -> None:
 				settingKeysString += "\n" + setting.Key
 
 		commands.cheat_output(settingKeysString + "\n", _connection)
-	except Exception as e:
+	except:
 		commands.cheat_output("Failed to print setting names.", _connection)
-		Debug.Log("Failed to print setting names.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+		Debug.Log("Failed to print setting names.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 		return
 
 def _ShowDialog (key: str, _connection: int = None) -> None:
@@ -61,9 +61,9 @@ def _ShowDialog (key: str, _connection: int = None) -> None:
 				setting.ShowDialog()
 				return
 
-	except Exception as e:
+	except:
 		commands.cheat_output("Failed to show dialog for setting '" + key + "'.", _connection)
-		Debug.Log("Failed to show dialog for setting '" + key + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+		Debug.Log("Failed to show dialog for setting '" + key + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 		return
 
 	commands.cheat_output("Cannot find setting '" + key + "'.\n", _connection)

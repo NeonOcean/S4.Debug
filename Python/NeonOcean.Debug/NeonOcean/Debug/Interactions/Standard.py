@@ -19,14 +19,14 @@ class ResetInteraction(Dependent.DependentExtension, Events.EventsExtension, Reg
 
 			ResetInteractions.append(cls)
 		except Exception as e:
-			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 			raise e
 
 	def OnStarted (self) -> None:
 		try:
 			Resetting.ShowResetDialog(This.Mod)
-		except Exception as e:
-			Debug.Log("Failed to show reset dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+		except:
+			Debug.Log("Failed to show reset dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 
 class DocumentationInteraction(Dependent.DependentExtension, Events.EventsExtension, Registration.RegistrationExtension, immediate_interaction.ImmediateSuperInteraction):
 	DependentMod = This.Mod
@@ -37,14 +37,14 @@ class DocumentationInteraction(Dependent.DependentExtension, Events.EventsExtens
 
 			DocumentationInteractions.append(cls)
 		except Exception as e:
-			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 			raise e
 
 	def OnStarted (self) -> None:
 		try:
 			Generic.ShowOpenBrowserDialog(Websites.GetNODocumentationModURL(This.Mod))
-		except Exception as e:
-			Debug.Log("Failed to show mod documentation with the open browser dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+		except:
+			Debug.Log("Failed to show mod documentation with the open browser dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 
 class VisitModPageInteraction(Dependent.DependentExtension, Events.EventsExtension, Registration.RegistrationExtension, immediate_interaction.ImmediateSuperInteraction):
 	DependentMod = This.Mod
@@ -55,11 +55,11 @@ class VisitModPageInteraction(Dependent.DependentExtension, Events.EventsExtensi
 
 			VisitModPageInteractions.append(cls)
 		except Exception as e:
-			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 			raise e
 
 	def OnStarted (self) -> None:
 		try:
 			Generic.ShowOpenBrowserDialog(Websites.GetNOMainModURL(This.Mod))
-		except Exception as e:
-			Debug.Log("Failed to show the mod page dac with the open browser dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+		except:
+			Debug.Log("Failed to show the mod page dac with the open browser dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)

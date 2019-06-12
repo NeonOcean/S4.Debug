@@ -1,1 +1,0 @@
-The time in seconds between when reports are written in burst mode. If this value is zero, the timer will be disabled and no reports will be logged. Very low values may be interpreted as zero.

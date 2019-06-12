@@ -1,14 +1,16 @@
-import collections
+import math
 import numbers
 import os
 import typing
 
-from NeonOcean.Debug import LoggingShared, This
-from NeonOcean.Main import Debug, Language, LoadingShared, SettingsShared
+from NeonOcean.Debug import This
+from NeonOcean.Main import Debug, Language, LoadingShared, SettingsShared, Websites
 from NeonOcean.Main.Data import Persistence
 from NeonOcean.Main.Tools import Exceptions, Parse, Version
 from NeonOcean.Main.UI import Settings as SettingsUI
+from sims4 import localization
 from sims4.tuning import tunable
+from ui import ui_dialog
 
 SettingsPath = os.path.join(This.Mod.PersistentPath, "Settings.json")  # type: str
 
@@ -22,26 +24,14 @@ class Setting(SettingsShared.SettingBase):
 	Type: typing.Type
 	Default: typing.Any
 
-	Name: Language.String
-	Description: Language.String
-	DescriptionInput = None  # type: typing.Optional[Language.String]
-
-	DialogType = SettingsShared.DialogTypes.Input  # type: SettingsShared.DialogTypes
-	Values = dict()  # type: typing.Dict[typing.Any, Language.String]
-	InputRestriction = None  # type: typing.Optional[str]
-
-	DocumentationPage: str
+	Dialog: typing.Type[SettingsUI.SettingDialog]
 
 	def __init_subclass__ (cls, **kwargs):
-		if cls.IsSetting:
-			cls.SetDefaults()
-			_allSettings.append(cls)
+		super().OnInitializeSubclass()
 
-	@classmethod
-	def SetDefaults (cls) -> None:
-		cls.Name = Language.String(This.Mod.Namespace + ".System.Settings.Values." + cls.Key + ".Name")  # type: Language.String
-		cls.Description = Language.String(This.Mod.Namespace + ".System.Settings.Values." + cls.Key + ".Description")  # type: Language.String
-		cls.DocumentationPage = cls.Key.replace("_", "-").lower()  # type: str
+		if cls.IsSetting:
+			cls.SetDefault()
+			_allSettings.append(cls)
 
 	@classmethod
 	def Setup (cls) -> None:
@@ -71,193 +61,218 @@ class Setting(SettingsShared.SettingBase):
 		return value
 
 	@classmethod
-	def GetInputTokens (cls) -> typing.Tuple[typing.Any, ...]:
-		return tuple()
-
-	@classmethod
 	def IsActive (cls) -> bool:
 		return True
 
 	@classmethod
 	def ShowDialog (cls):
-		SettingsUI.ShowSettingDialog(cls, This.Mod)
+		if not hasattr(cls, "Dialog"):
+			return
+
+		if cls.Dialog is None:
+			return
+
+		cls.Dialog.ShowDialog(cls)
 
 	@classmethod
-	def GetInputString (cls, inputValue: typing.Any) -> str:
-		raise NotImplementedError()
-
-	@classmethod
-	def ParseInputString (cls, inputString: str) -> typing.Any:
-		raise NotImplementedError()
+	def GetName (cls) -> localization.LocalizedString:
+		return Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings.Values." + cls.Key + ".Name")
 
 class BooleanSetting(Setting):
 	Type = bool
 
-	DialogType = SettingsShared.DialogTypes.Choice  # type: SettingsShared.DialogTypes
+	class Dialog(SettingsUI.StandardDialog):
+		HostNamespace = This.Mod.Namespace  # type: str
+		HostName = This.Mod.Name  # type: str
 
-	Values = {
-		True: Language.String(This.Mod.Namespace + ".System.Settings.Boolean.True"),
-		False: Language.String(This.Mod.Namespace + ".System.Settings.Boolean.False")
-	}
+		Values = [False, True]  # type: typing.List[bool]
+
+		@classmethod
+		def GetTitleText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return setting.GetName()
+
+		@classmethod
+		def GetDescriptionText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings.Values." + setting.Key + ".Description")
+
+		@classmethod
+		def GetDefaultText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings.Boolean." + str(setting.Default))
+
+		@classmethod
+		def GetDocumentationURL (cls, setting: typing.Type[SettingsShared.SettingBase]) -> typing.Optional[str]:
+			return Websites.GetNODocumentationSettingURL(setting, This.Mod)
+
+		@classmethod
+		def _CreateButtons (cls,
+							setting: typing.Type[SettingsShared.SettingBase],
+							currentValue: typing.Any,
+							showDialogArguments: typing.Dict[str, typing.Any],
+							returnCallback: typing.Callable[[], None] = None,
+							*args, **kwargs):
+
+			buttons = super()._CreateButtons(setting, currentValue, showDialogArguments, returnCallback = returnCallback, *args, **kwargs)  # type: typing.List[SettingsUI.DialogButton]
+
+			for valueIndex in range(len(cls.Values)):  # type: int
+				def CreateValueButtonCallback (value: typing.Any) -> typing.Callable:
+
+					# noinspection PyUnusedLocal
+					def ValueButtonCallback (dialog: ui_dialog.UiDialog) -> None:
+						cls._ShowDialogInternal(setting, value, showDialogArguments, returnCallback = returnCallback)
+
+					return ValueButtonCallback
+
+				valueButtonArguments = {
+					"responseID": 50000 + valueIndex + -1,
+					"sortOrder": -(500 + valueIndex + -1),
+					"callback": CreateValueButtonCallback(cls.Values[valueIndex]),
+					"text": Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings.Boolean." + str(cls.Values[valueIndex])),
+				}
+
+				if currentValue == cls.Values[valueIndex]:
+					valueButtonArguments["selected"] = True
+
+				valueButton = SettingsUI.ChoiceDialogButton(**valueButtonArguments)
+				buttons.append(valueButton)
+
+			return buttons
 
 	@classmethod
-	def GetInputString (cls, inputValue: bool) -> str:
-		if not isinstance(inputValue, bool):
-			raise Exceptions.IncorrectTypeException(inputValue, "inputValue", (bool,))
+	def Verify (cls, value: bool, lastChangeVersion: Version.Version = None) -> bool:
+		if not isinstance(value, bool):
+			raise Exceptions.IncorrectTypeException(value, "value", (bool,))
 
-		return str(inputValue)
+		if not isinstance(lastChangeVersion, Version.Version) and lastChangeVersion is not None:
+			raise Exceptions.IncorrectTypeException(lastChangeVersion, "lastChangeVersion", (Version.Version, "None"))
 
-	@classmethod
-	def ParseInputString (cls, inputString: str) -> bool:
-		if not isinstance(inputString, str):
-			raise Exceptions.IncorrectTypeException(inputString, "inputString", (str,))
-
-		return Parse.ParseBool(inputString)
+		return value
 
 class RealNumberSetting(Setting):
 	Type = numbers.Real
 
-	@classmethod
-	def SetDefaults (cls) -> None:
-		super().SetDefaults()
-		cls.DescriptionInput = Language.String(This.Mod.Namespace + ".System.Settings.Values." + cls.Key + ".DescriptionInput")  # type: Language.String
+	class Dialog(SettingsUI.InputDialog):
+		HostNamespace = This.Mod.Namespace  # type: str
+		HostName = This.Mod.Name  # type: str
+
+		@classmethod
+		def GetTitleText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return setting.GetName()
+
+		@classmethod
+		def GetDescriptionText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings.Values." + setting.Key + ".Description")
+
+		@classmethod
+		def GetDefaultText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return Language.CreateLocalizationString(str(setting.Default))
+
+		@classmethod
+		def GetDocumentationURL (cls, setting: typing.Type[SettingsShared.SettingBase]) -> typing.Optional[str]:
+			return Websites.GetNODocumentationSettingURL(setting, This.Mod)
+
+		@classmethod
+		def _ParseValueString (cls, valueString: str) -> numbers.Real:
+			if not isinstance(valueString, str):
+				raise Exceptions.IncorrectTypeException(valueString, "valueString", (str,))
+
+			parsedInput = Parse.ParseNumber(valueString)  # type: numbers.Real
+
+			if not isinstance(parsedInput, numbers.Real):
+				raise Exception("Input string cannot be converted to a real number.")
+
+			return parsedInput
+
+		@classmethod
+		def _ValueToString (cls, value: numbers.Real) -> str:
+			if not isinstance(value, numbers.Real):
+				raise Exceptions.IncorrectTypeException(value, "value", (numbers.Real,))
+
+			return str(value)
 
 	@classmethod
-	def GetInputString (cls, inputValue: numbers.Real) -> str:
-		if not isinstance(inputValue, numbers.Real):
-			raise Exceptions.IncorrectTypeException(inputValue, "inputValue", (numbers.Real,))
+	def Verify (cls, value: float, lastChangeVersion: Version.Version = None) -> float:
+		if not isinstance(value, numbers.Real):
+			raise Exceptions.IncorrectTypeException(value, "value", (numbers.Real,))
 
-		return str(inputValue)
+		if math.isnan(value):
+			raise ValueError("Value cannot be 'not a number'.")
 
-	@classmethod
-	def ParseInputString (cls, inputString: str) -> numbers.Real:
-		if not isinstance(inputString, str):
-			raise Exceptions.IncorrectTypeException(inputString, "inputString", (str,))
+		if not isinstance(lastChangeVersion, Version.Version) and lastChangeVersion is not None:
+			raise Exceptions.IncorrectTypeException(lastChangeVersion, "lastChangeVersion", (Version.Version, "None"))
 
-		parsedInput = Parse.ParseNumber(inputString)  # type: numbers.Real
+		return value
 
-		if not isinstance(parsedInput, numbers.Real):
-			raise Exception("Input string cannot be converted to a real number.")
-
-		return parsedInput
-
-class LoggingModesSetting(Setting):
+class EnumSetting(Setting):
 	Type = str
 
-	DialogType = SettingsShared.DialogTypes.Choice  # type: SettingsShared.DialogTypes
+	class Dialog(SettingsUI.StandardDialog):
+		HostNamespace = This.Mod.Namespace  # type: str
+		HostName = This.Mod.Name  # type: str
 
-	Values = {
-		"Continuous": Language.String(This.Mod.Namespace + ".System.Settings.LoggingModes.Continuous"),
-		"Burst": Language.String(This.Mod.Namespace + ".System.Settings.LoggingModes.Burst")
-	}
+		EnumName: str  # type: str
+		Values: typing.List[str]
 
-	@classmethod
-	def GetInputString (cls, inputValue: LoggingShared.LoggingModes) -> str:
-		if not isinstance(inputValue, LoggingShared.LoggingModes):
-			raise Exceptions.IncorrectTypeException(inputValue, "inputValue", (LoggingShared.LoggingModes,))
+		@classmethod
+		def GetTitleText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return setting.GetName()
 
-		return inputValue.name
+		@classmethod
+		def GetDescriptionText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings.Values." + setting.Key + ".Description")
 
-	@classmethod
-	def ParseInputString (cls, inputString: str) -> str:
-		if not isinstance(inputString, str):
-			raise Exceptions.IncorrectTypeException(inputString, "inputString", (str,))
+		@classmethod
+		def GetDefaultText (cls, setting: typing.Type[SettingsShared.SettingBase]) -> localization.LocalizedString:
+			return Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings." + cls.EnumName + "." + str(setting.Default))
 
-		parsedInput = Parse.ParseEnum(inputString, LoggingShared.LoggingModes, ignoreCase = True)  # type: LoggingShared.LoggingModes
-		return parsedInput.name
+		@classmethod
+		def GetDocumentationURL (cls, setting: typing.Type[SettingsShared.SettingBase]) -> typing.Optional[str]:
+			return Websites.GetNODocumentationSettingURL(setting, This.Mod)
 
-class LogLevelsSetting(Setting):
-	Type = str
+		@classmethod
+		def _CreateButtons (cls,
+							setting: typing.Type[SettingsShared.SettingBase],
+							currentValue: typing.Any,
+							showDialogArguments: typing.Dict[str, typing.Any],
+							returnCallback: typing.Callable[[], None] = None,
+							*args, **kwargs):
 
-	DialogType = SettingsShared.DialogTypes.Choice  # type: SettingsShared.DialogTypes
+			buttons = super()._CreateButtons(setting, currentValue, showDialogArguments, returnCallback = returnCallback, *args, **kwargs)  # type: typing.List[SettingsUI.DialogButton]
 
-	Values = {
-		"Debug": Language.String(This.Mod.Namespace + ".System.Settings.LogLevels.Debug"),
-		"Info": Language.String(This.Mod.Namespace + ".System.Settings.LogLevels.Info"),
-		"Warning": Language.String(This.Mod.Namespace + ".System.Settings.LogLevels.Warning"),
-		"Error": Language.String(This.Mod.Namespace + ".System.Settings.LogLevels.Error"),
-		"Exception": Language.String(This.Mod.Namespace + ".System.Settings.LogLevels.Exception")
-	}
+			for valueIndex in range(len(cls.Values)):  # type: int
+				def CreateValueButtonCallback (value: typing.Any) -> typing.Callable:
 
-	@classmethod
-	def GetInputString (cls, inputValue: Debug.LogLevels) -> str:
-		if not isinstance(inputValue, Debug.LogLevels):
-			raise Exceptions.IncorrectTypeException(inputValue, "inputValue", (Debug.LogLevels,))
+					# noinspection PyUnusedLocal
+					def ValueButtonCallback (dialog: ui_dialog.UiDialog) -> None:
+						cls._ShowDialogInternal(setting, value, showDialogArguments = showDialogArguments, returnCallback = returnCallback)
 
-		return inputValue.name
+					return ValueButtonCallback
 
-	@classmethod
-	def ParseInputString (cls, inputString: str) -> str:
-		if not isinstance(inputString, str):
-			raise Exceptions.IncorrectTypeException(inputString, "inputString", (str,))
+				valueButtonArguments = {
+					"responseID": 50000 + valueIndex + -1,
+					"sortOrder": -(500 + valueIndex + -1),
+					"callback": CreateValueButtonCallback(cls.Values[valueIndex]),
+					"text": Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".System.Settings." + cls.EnumName + "." + cls.Values[valueIndex]),
+				}
 
-		parsedInput = Parse.ParseEnum(inputString, Debug.LogLevels, ignoreCase = True)  # type: Debug.LogLevels
-		return parsedInput.name
+				if currentValue == cls.Values[valueIndex]:
+					valueButtonArguments["selected"] = True
 
-class Logging_Enabled(BooleanSetting):
-	IsSetting = True  # type: bool
+				valueButton = SettingsUI.ChoiceDialogButton(**valueButtonArguments)
+				buttons.append(valueButton)
 
-	Key = "Logging_Enabled"  # type: str
-	Default = True  # type: bool
+			return buttons
 
-	@classmethod
-	def Verify (cls, value: bool, lastChangeVersion: Version.Version = None) -> bool:
-		if not isinstance(value, bool):
-			raise Exceptions.IncorrectTypeException(value, "value", (bool,))
+class LogLevelsSetting(EnumSetting):
+	class Dialog(EnumSetting.Dialog):
+		EnumName = "LogLevels"  # type: str
+		Values = []  # type: typing.List[str]
 
-		if not isinstance(lastChangeVersion, Version.Version) and lastChangeVersion is not None:
-			raise Exceptions.IncorrectTypeException(lastChangeVersion, "lastChangeVersion", (Version.Version, "None"))
+		@classmethod
+		def OnInitializeSubclass (cls):
+			super().OnInitializeSubclass()
 
-		return value
-
-class Logging_Mode(LoggingModesSetting):
-	IsSetting = True  # type: bool
-
-	Key = "Logging_Mode"  # type: str
-	Default = "Burst"  # type: str
-
-	@classmethod
-	def Verify (cls, value: str, lastChangeVersion: Version.Version = None) -> str:
-		Parse.ParseEnum(value, LoggingShared.LoggingModes)
-		return value
-
-class Write_Chronological(BooleanSetting):
-	IsSetting = True  # type: bool
-
-	Key = "Write_Chronological"  # type: str
-	Default = True  # type: bool
-
-	@classmethod
-	def Verify (cls, value: bool, lastChangeVersion: Version.Version = None) -> bool:
-		if not isinstance(value, bool):
-			raise Exceptions.IncorrectTypeException(value, "value", (bool,))
-
-		if not isinstance(lastChangeVersion, Version.Version) and lastChangeVersion is not None:
-			raise Exceptions.IncorrectTypeException(lastChangeVersion, "lastChangeVersion", (Version.Version, "None"))
-
-		return value
-
-class Write_Groups(BooleanSetting):
-	IsSetting = True  # type: bool
-
-	Key = "Write_Groups"  # type: str
-	Default = False  # type: bool
-
-	@classmethod
-	def Verify (cls, value: bool, lastChangeVersion: Version.Version = None) -> bool:
-		if not isinstance(value, bool):
-			raise Exceptions.IncorrectTypeException(value, "value", (bool,))
-
-		if not isinstance(lastChangeVersion, Version.Version) and lastChangeVersion is not None:
-			raise Exceptions.IncorrectTypeException(lastChangeVersion, "lastChangeVersion", (Version.Version, "None"))
-
-		return value
-
-class Burst_Level(LogLevelsSetting):
-	IsSetting = True  # type: bool
-
-	Key = "Burst_Level"  # type: str
-	Default = "Warning"  # type: str
+			for value in Debug.LogLevels.values:  # type: Debug.LogLevels
+				cls.Values.append(value.name)
 
 	@classmethod
 	def Verify (cls, value: str, lastChangeVersion: Version.Version = None) -> str:
@@ -270,10 +285,34 @@ class Burst_Level(LogLevelsSetting):
 		Parse.ParseEnum(value, Debug.LogLevels)
 		return value
 
-class Burst_Interval(RealNumberSetting):
+class LoggingEnabled(BooleanSetting):
 	IsSetting = True  # type: bool
 
-	Key = "Burst_Interval"  # type: str
+	Key = "Logging_Enabled"  # type: str
+	Default = True  # type: bool
+
+class WriteChronological(BooleanSetting):
+	IsSetting = True  # type: bool
+
+	Key = "Write_Chronological"  # type: str
+	Default = True  # type: bool
+
+class WriteGroups(BooleanSetting):
+	IsSetting = True  # type: bool
+
+	Key = "Write_Groups"  # type: str
+	Default = False  # type: bool
+
+class LogLevel(LogLevelsSetting):
+	IsSetting = True  # type: bool
+
+	Key = "Log_Level"  # type: str
+	Default = "Warning"  # type: str
+
+class LogInterval(RealNumberSetting):
+	IsSetting = True  # type: bool
+
+	Key = "Log_Interval"  # type: str
 	Default = 20  # type: float
 
 	Minimum = tunable.Tunable(description = "The minimum value for this setting.",
@@ -286,15 +325,11 @@ class Burst_Interval(RealNumberSetting):
 
 	LowValueCutoff = tunable.Tunable(description = "Setting values less than the cutoff will be replaced with zero.",
 									 tunable_type = float,
-									 default = 0.0005)  # type: float
+									 default = 0.05)  # type: float
 
 	@classmethod
 	def Verify (cls, value: float, lastChangeVersion: Version.Version = None) -> float:
-		if not isinstance(value, numbers.Real):
-			raise Exceptions.IncorrectTypeException(value, "value", (numbers.Real,))
-
-		if not isinstance(lastChangeVersion, Version.Version) and lastChangeVersion is not None:
-			raise Exceptions.IncorrectTypeException(lastChangeVersion, "lastChangeVersion", (Version.Version, "None"))
+		value = super().Verify(value, lastChangeVersion = lastChangeVersion)
 
 		if not (cls.Minimum <= value <= cls.Maximum):
 			raise ValueError("Value must be greater than '" + str(cls.Minimum) + "' and less than '" + str(cls.Maximum) + "'.")
@@ -304,25 +339,8 @@ class Burst_Interval(RealNumberSetting):
 
 		return value
 
-class Continuous_Level(LogLevelsSetting):
-	IsSetting = True  # type: bool
-
-	Key = "Continuous_Level"  # type: str
-	Default = "Warning"  # type: str
-
-	@classmethod
-	def Verify (cls, value: str, lastChangeVersion: Version.Version = None) -> str:
-		if not isinstance(value, str):
-			raise Exceptions.IncorrectTypeException(value, "value", (str,))
-
-		if not isinstance(lastChangeVersion, Version.Version) and lastChangeVersion is not None:
-			raise Exceptions.IncorrectTypeException(lastChangeVersion, "lastChangeVersion", (Version.Version, "None"))
-
-		Parse.ParseEnum(value, Debug.LogLevels)
-		return value
-
 def GetAllSettings () -> typing.List[typing.Type[Setting]]:
-	return _allSettings
+	return list(_allSettings)
 
 def Load () -> None:
 	_settings.Load()
@@ -330,7 +348,7 @@ def Load () -> None:
 def Save () -> None:
 	_settings.Save()
 
-def Setup (key: str, valueType: type, default, verify: collections.Callable) -> None:
+def Setup (key: str, valueType: type, default, verify: typing.Callable) -> None:
 	_settings.Setup(key, valueType, default, verify)
 
 def isSetup (key: str) -> bool:
@@ -348,10 +366,10 @@ def Reset (key: str = None) -> None:
 def Update () -> None:
 	_settings.Update()
 
-def RegisterUpdate (update: collections.Callable) -> None:
+def RegisterUpdate (update: typing.Callable) -> None:
 	_settings.RegisterUpdate(update)
 
-def UnregisterUpdate (update: collections.Callable) -> None:
+def UnregisterUpdate (update: typing.Callable) -> None:
 	_settings.UnregisterUpdate(update)
 
 def _OnInitiate (cause: LoadingShared.LoadingCauses) -> None:
@@ -374,8 +392,8 @@ def _OnUnload (cause: LoadingShared.UnloadingCauses) -> None:
 
 	try:
 		Save()
-	except Exception as e:
-		Debug.Log("Failed to save settings.\n" + Debug.FormatException(e), This.Mod.Namespace, Debug.LogLevels.Warning, group = This.Mod.Namespace, owner = __name__)
+	except:
+		Debug.Log("Failed to save settings.", This.Mod.Namespace, Debug.LogLevels.Warning, group = This.Mod.Namespace, owner = __name__)
 
 def _OnReset () -> None:
 	Reset()

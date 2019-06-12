@@ -1,1 +1,0 @@
-Changes how often reports are written to the log. In burst mode, reports will be stored in memory temporarily and written to the log in groups. In continuous mode, reports will be written immediately.

@@ -1,1 +1,0 @@
-In burst logging mode, any reports less serious than this will be ignored. Using info or debug can cause large files to build up, they are not recommended to be used by regular users.

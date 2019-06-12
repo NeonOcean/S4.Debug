@@ -20,10 +20,10 @@ class ModSettingInteraction(Dependent.DependentExtension, Events.EventsExtension
 
 			ModSettingInteractions.append(cls)
 		except Exception as e:
-			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__, exception = e)
+			Debug.Log("Failed to initialize new sub class for '" + cls.__name__ + "'.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 			raise e
 
-class _Announcer(Director.Controller):
+class _Announcer(Director.Announcer):
 	Host = This.Mod
 
 	@classmethod
@@ -34,12 +34,23 @@ class _Announcer(Director.Controller):
 		modSettingCategory = services.get_instance_manager(resources.Types.PIE_MENU_CATEGORY).get(Categories.DebugModSettingsID)  # type: script_object.ScriptObject
 
 		for setting in Settings.GetAllSettings():  # type: SettingsShared.SettingBase
-			if setting.DialogType == SettingsShared.DialogTypes.NoDialog:
+			if not hasattr(setting, "Dialog"):
+				continue
+
+			if setting.Dialog is None:
 				continue
 
 			settingInteraction = ModSettingInteraction.generate_tuned_type(This.Mod.Namespace + ".Interactions.ModSetting." + setting.Key)  # type: typing.Type[ModSettingInteraction]
 
-			settingInteraction.display_name = setting.Name.GetCallableLocalizationString()
+			def CreateSettingDisplayNameCallable (displayNameSetting: SettingsShared.SettingBase) -> typing.Callable:
+
+				# noinspection PyUnusedLocal
+				def SettingDisplayNameCallable (*args, **kwargs):
+					return displayNameSetting.GetName()
+
+				return SettingDisplayNameCallable
+
+			settingInteraction.display_name = CreateSettingDisplayNameCallable(setting)
 			settingInteraction.category = modSettingCategory
 
 			# noinspection SpellCheckingInspection

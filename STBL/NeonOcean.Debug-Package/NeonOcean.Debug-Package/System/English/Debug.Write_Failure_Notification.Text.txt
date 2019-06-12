@@ -1,0 +1,4 @@
+Failed to write a debug file, this problem may make error reporting impossible.
+
+Error Information:
+{0.String}
