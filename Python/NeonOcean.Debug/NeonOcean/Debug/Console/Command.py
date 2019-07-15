@@ -90,7 +90,7 @@ def _Help (_connection: int = None) -> None:
 				helpText += consoleCommand.Alias[consoleCommand.HelpAliasPosition]
 
 		commands.cheat_output(helpText + "\n", _connection)
-	except:
+	except Exception:
 		output = commands.CheatOutput(_connection)
 		output("Failed to show help information.")
 

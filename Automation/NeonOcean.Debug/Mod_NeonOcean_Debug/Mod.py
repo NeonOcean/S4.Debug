@@ -47,7 +47,7 @@ class Mod:
 		self.UninstallPath = os.path.join(Paths.S4ModsPath, informationDictionary["Uninstall"])  # type: str
 
 	def GetModVersion (self) -> str:
-		with open(os.path.join(Paths.LoosePath, self.Namespace, "NeonOcean-Mod.json")) as informationFile:
+		with open(os.path.join(Paths.LoosePath, self.Namespace, "NeonOcean-Mod-" + self.Name + ".json")) as informationFile:
 			informationDictionary = decoder.JSONDecoder().decode(informationFile.read())  # type: typing.Dict[str, typing.Any]
 
 		if not "Version" in informationDictionary:

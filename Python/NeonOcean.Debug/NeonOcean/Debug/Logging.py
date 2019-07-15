@@ -330,12 +330,12 @@ def _OnStop (cause: LoadingShared.UnloadingCauses) -> None:
 def _UpdateSettings () -> None:
 	global _loggingEnabled, _writeChronological, _writeGroups, _logLevel, _logInterval
 
-	loggingEnabledChange = Settings.Get(Settings.LoggingEnabled.Key)  # type: bool
-	writeChronologicalChange = Settings.Get(Settings.WriteChronological.Key)  # type: bool
-	writeGroupsChange = Settings.Get(Settings.WriteGroups.Key)  # type: bool
-	logLevelChange = Settings.Get(Settings.LogLevel.Key)  # type: str
+	loggingEnabledChange = Settings.LoggingEnabled.Get()  # type: bool
+	writeChronologicalChange = Settings.WriteChronological.Get()  # type: bool
+	writeGroupsChange = Settings.WriteGroups.Get()  # type: bool
+	logLevelChange = Settings.LogLevel.Get()  # type: str
 	logLevelChange = Parse.ParseEnum(logLevelChange, Debug.LogLevels)  # type: Debug.LogLevels
-	logIntervalChange = Settings.Get(Settings.LogInterval.Key)  # type: float
+	logIntervalChange = Settings.LogInterval.Get()  # type: float
 
 	loggingEnabledLast = _loggingEnabled  # type: bool
 	writeChronologicalLast = _writeChronological  # type: bool

@@ -9,7 +9,10 @@
 	"Rating": "Normal",
 
 	"ScriptPaths": [
-		"NeonOcean.Debug/NeonOcean.Debug.archive"
+		{
+			"Root": "Current",
+			"Path": "NeonOcean.Debug.archive"
+		}
 	],
 
 	"Requirements": [

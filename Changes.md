@@ -1,3 +1,9 @@
+### v1.3.0 (July 15, 2019)
+### Changes
+- All of Debug's interactions will now only show up when clicking on Sims instead of everything.
+
+______________________________
+
 ## v1.2.0 (June 12, 2019)
 ### New Features
 - Exceptions will now be logged for reports that are below the level 'exception', even though they aren't directly passed to the log functions.

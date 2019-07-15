@@ -25,7 +25,7 @@ class ResetInteraction(Dependent.DependentExtension, Events.EventsExtension, Reg
 	def OnStarted (self) -> None:
 		try:
 			Resetting.ShowResetDialog(This.Mod)
-		except:
+		except Exception:
 			Debug.Log("Failed to show reset dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 
 class DocumentationInteraction(Dependent.DependentExtension, Events.EventsExtension, Registration.RegistrationExtension, immediate_interaction.ImmediateSuperInteraction):
@@ -43,7 +43,7 @@ class DocumentationInteraction(Dependent.DependentExtension, Events.EventsExtens
 	def OnStarted (self) -> None:
 		try:
 			Generic.ShowOpenBrowserDialog(Websites.GetNODocumentationModURL(This.Mod))
-		except:
+		except Exception:
 			Debug.Log("Failed to show mod documentation with the open browser dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
 
 class VisitModPageInteraction(Dependent.DependentExtension, Events.EventsExtension, Registration.RegistrationExtension, immediate_interaction.ImmediateSuperInteraction):
@@ -61,5 +61,5 @@ class VisitModPageInteraction(Dependent.DependentExtension, Events.EventsExtensi
 	def OnStarted (self) -> None:
 		try:
 			Generic.ShowOpenBrowserDialog(Websites.GetNOMainModURL(This.Mod))
-		except:
-			Debug.Log("Failed to show the mod page dac with the open browser dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
+		except Exception:
+			Debug.Log("Failed to show the mod page with the open browser dialog.", This.Mod.Namespace, Debug.LogLevels.Exception, group = This.Mod.Namespace, owner = __name__)
