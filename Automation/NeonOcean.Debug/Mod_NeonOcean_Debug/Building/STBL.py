@@ -6,17 +6,17 @@ from Mod_NeonOcean_Debug.Tools import STBL
 
 def BuildSTBLChanges () -> bool:
 	canBuildSourceXML = STBL.CanBuildSourceXML()  # type: bool
-	canBuildIdentifierXML = STBL.CanBuildIdentifierXML()  # type: bool
+	canBuildIdentifiersXML = STBL.CanBuildIdentifiersXML()  # type: bool
 	canBuildSTBL = STBL.CanBuildSTBL()  # type: bool
 
-	if not canBuildSourceXML or not canBuildIdentifierXML or not canBuildSTBL:
+	if not canBuildSourceXML or not canBuildIdentifiersXML or not canBuildSTBL:
 		return False
 
 	for package in Mod.GetCurrentMod().Packages:  # type: Mod.Package
 		if not os.path.exists(package.STBLSourcePath):
 			continue
 
-		builtSourceXML = False  # type: bool
+		buildSTBLSources = False  # type: bool
 
 		for sourceName in os.listdir(package.STBLSourcePath):  # type: str
 			sourceDirectoryPath = os.path.join(package.STBLSourcePath, sourceName)  # type: str
@@ -25,11 +25,19 @@ def BuildSTBLChanges () -> bool:
 				if not STBL.ValidSTBLDirectory(sourceDirectoryPath):
 					continue
 
+				with open(os.path.join(sourceDirectoryPath, "STBL.json")) as stblInformationFile:
+					stblInformation = json.JSONDecoder().decode(stblInformationFile.read())  # type: dict
+
+				stblSourceFileName = stblInformation["Source File"]["Name"]  # type: str
+
+				if not STBL.STBLSourceFilesExists(stblSourceFileName, package.SourceLoosePath):
+					buildSTBLSources = True
+
 				sourceBuildFilePath = os.path.join(package.STBLBuildPath, os.path.splitext(sourceName)[0] + ".xml")  # type: str
 
 				if not os.path.exists(sourceBuildFilePath):
 					STBL.BuildSourceXML(sourceBuildFilePath, sourceDirectoryPath)
-					builtSourceXML = True
+					buildSTBLSources = True
 				else:
 					sourceTempFilePath = os.path.splitext(sourceBuildFilePath)[0] + ".temp"
 
@@ -45,41 +53,51 @@ def BuildSTBLChanges () -> bool:
 							with open(sourceBuildFilePath, "w+", newline = "") as sourceBuildFile:
 								sourceBuildFile.write(newSourceBuild)
 
-							builtSourceXML = True
+							buildSTBLSources = True
 
 					os.remove(sourceTempFilePath)
 
-				with open(os.path.join(sourceDirectoryPath, "STBL.json")) as stblInformationFile:
-					stblInformation = json.JSONDecoder().decode(stblInformationFile.read())  # type: dict
-
-				identifiersFileGroup = stblInformation["Identifiers File"]["Group"]  # type: str
-				identifiersFileInstance = stblInformation["Identifiers File"]["Instance"]  # type: str
 				identifiersFileName = stblInformation["Identifiers File"]["Name"]   # type: str
 
-				identifierBuildFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifierFileName(identifiersFileGroup, identifiersFileInstance, identifiersFileName))  # type: str
+				identifiersBuildFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersFileName(identifiersFileName))  # type: str
+				identifiersSourceInfoBuildFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersSourceInfoFileName(identifiersFileName))  # type: str
 
-				if not os.path.exists(identifierBuildFilePath):
-					STBL.BuildIdentifierXML(identifierBuildFilePath, sourceDirectoryPath)
+				if not os.path.exists(identifiersBuildFilePath) or not os.path.exists(identifiersSourceInfoBuildFilePath):
+					STBL.BuildIdentifiersXML(identifiersBuildFilePath, identifiersSourceInfoBuildFilePath, sourceDirectoryPath)
 				else:
-					identifierTempFilePath = os.path.splitext(identifierBuildFilePath)[0] + ".temp"
+					identifiersTempFilePath = identifiersBuildFilePath + ".temp"
+					identifiersSourceInfoTempFilePath = identifiersSourceInfoBuildFilePath + ".temp"  # type: str
 
-					STBL.BuildIdentifierXML(identifierTempFilePath, sourceDirectoryPath)
+					STBL.BuildIdentifiersXML(identifiersTempFilePath, identifiersSourceInfoTempFilePath, sourceDirectoryPath)
 
-					with open(identifierBuildFilePath, newline = "") as identifierBuildFile:
-						currentIdentifierBuild = identifierBuildFile.read()
+					with open(identifiersBuildFilePath, newline = "") as identifiersBuildFile:
+						currentIdentifiersBuild = identifiersBuildFile.read()
 
-					with open(identifierTempFilePath, newline = "") as identifierTempFile:
-						newIdentifierBuild = identifierTempFile.read()
+					with open(identifiersTempFilePath, newline = "") as identifiersTempFile:
+						newIdentifiersBuild = identifiersTempFile.read()
 
-					if currentIdentifierBuild != newIdentifierBuild:
-						with open(identifierBuildFilePath, "w+", newline = "") as identifierBuildFile:
-							identifierBuildFile.write(newIdentifierBuild)
+					if currentIdentifiersBuild != newIdentifiersBuild:
+						with open(identifiersBuildFilePath, "w+", newline = "") as identifiersBuildFile:
+							identifiersBuildFile.write(newIdentifiersBuild)
 
-						builtSourceXML = True
+						buildSTBLSources = True
 
-					os.remove(identifierTempFilePath)
+					with open(identifiersSourceInfoBuildFilePath, newline = "") as identifiersSourceInfoBuildFile:
+						currentIdentifiersSourceInfoBuild = identifiersSourceInfoBuildFile.read()
 
-		if builtSourceXML and os.path.exists(package.STBLBuildPath):
+					with open(identifiersSourceInfoTempFilePath, newline = "") as identifiersSourceInfoTempFile:
+						newIdentifiersSourceInfoBuild = identifiersSourceInfoTempFile.read()
+
+					if currentIdentifiersSourceInfoBuild != newIdentifiersSourceInfoBuild:
+						with open(identifiersSourceInfoBuildFilePath, "w+", newline = "") as identifiersSourceInfoBuildFile:
+							identifiersSourceInfoBuildFile.write(newIdentifiersSourceInfoBuild)
+
+						buildSTBLSources = True
+
+					os.remove(identifiersTempFilePath)
+					os.remove(identifiersSourceInfoTempFilePath)
+
+		if buildSTBLSources and os.path.exists(package.STBLBuildPath):
 			for stblXMLFileName in os.listdir(package.STBLBuildPath):  # type: str
 				stblXMLFilePath = os.path.join(package.STBLBuildPath, stblXMLFileName)  # type: str
 
@@ -90,10 +108,10 @@ def BuildSTBLChanges () -> bool:
 
 def BuildSTBLEverything () -> bool:
 	canBuildSourceXML = STBL.CanBuildSourceXML()  # type: bool
-	canBuildIdentifierXML = STBL.CanBuildIdentifierXML()  # type: bool
+	canBuildIdentifiersXML = STBL.CanBuildIdentifiersXML()  # type: bool
 	canBuildSTBL = STBL.CanBuildSTBL()  # type: bool
 
-	if not canBuildSourceXML or not canBuildIdentifierXML or not canBuildSTBL:
+	if not canBuildSourceXML or not canBuildIdentifiersXML or not canBuildSTBL:
 		return False
 
 	for package in Mod.GetCurrentMod().Packages:  # type: Mod.Package
@@ -109,9 +127,19 @@ def BuildSTBLEverything () -> bool:
 
 					STBL.BuildSourceXML(sourceBuildFilePath, sourceDirectoryPath)
 
+					with open(os.path.join(sourceDirectoryPath, "STBL.json")) as stblInformationFile:
+						stblInformation = json.JSONDecoder().decode(stblInformationFile.read())  # type: dict
+
+					identifiersFileName = stblInformation["Identifiers File"]["Name"]  # type: str
+
+					identifiersBuildFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersFileName(identifiersFileName))  # type: str
+					identifiersSourceInfoFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersSourceInfoFileName(identifiersFileName))  # type: str
+
+					STBL.BuildIdentifiersXML(identifiersBuildFilePath, identifiersSourceInfoFilePath, sourceDirectoryPath)
+
 		if os.path.exists(package.STBLBuildPath):
-			for stblXMLFileName in os.listdir(package.STBLSourcePath):  # type: str
-				stblXMLFilePath = os.path.join(package.STBLSourcePath, stblXMLFileName)  # type: str
+			for stblXMLFileName in os.listdir(package.STBLBuildPath):  # type: str
+				stblXMLFilePath = os.path.join(package.STBLBuildPath, stblXMLFileName)  # type: str
 
 				if os.path.isfile(stblXMLFilePath) and os.path.splitext(stblXMLFileName)[1].casefold() == ".xml":
 					STBL.BuildSTBL(package.SourceLoosePath, stblXMLFilePath)

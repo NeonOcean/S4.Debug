@@ -55,4 +55,4 @@ def _BuildPackagePackageBuilder (application, buildFilePath: str, baseFilePath: 
 	if packageBuilderExitCode != 0:
 		raise Exception("PackageBuilder failed to complete a task.")
 
-BuildPackageApplications = { "PackageBuilder": _BuildPackagePackageBuilder }  # type: typing.Dict[str, typing.Callable]
+BuildPackageApplications = { "PackageBuilder-v1.1.0": _BuildPackagePackageBuilder }  # type: typing.Dict[str, typing.Callable]

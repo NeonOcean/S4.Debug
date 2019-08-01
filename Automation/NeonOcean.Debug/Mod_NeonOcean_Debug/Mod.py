@@ -70,13 +70,13 @@ class Package:
 		self.BuildFilePath = os.path.join(self.BuildPath, self.FileName)  # type: str
 		self.BuildManifestFilePath = os.path.join(self.BuildPath, self.Name + "_Manifest.json")  # type: str
 		self.MergeRoot = os.path.join(modBuildPath, mergeRoot)  # type: str
-		self.SourcePath = os.path.join(self.PackagePath, self.Name)  # type: str
+		self.SourcePath = os.path.join(self.PackagePath, "Sources")  # type: str
 		self.SourceLoosePath = os.path.join(self.SourcePath, "Loose")  # type: str
 		self.SourceBaseFilePath = os.path.join(self.SourcePath, "Base", self.FileName)  # type: str
 
 		self.STBLPath = os.path.join(modPath, "STBL", self.Name)  # type: str
 		self.STBLBuildPath = os.path.join(self.STBLPath, "Build")  # type: str
-		self.STBLSourcePath = os.path.join(self.STBLPath, self.Name)  # type: str
+		self.STBLSourcePath = os.path.join(self.STBLPath, "Sources")  # type: str
 
 def GetCurrentMod () -> Mod:
 	return _mod

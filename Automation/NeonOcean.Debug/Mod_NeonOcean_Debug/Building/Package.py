@@ -43,10 +43,16 @@ def BuildPackageChanges () -> bool:
 					filesChanged = True
 
 			if loosePathExists:
-				for entryFileName, entryChangeTime in packageManifest["Loose"].items():  # type: str, float
+				packageManifestLooseDictionary = packageManifest["Loose"] # type: dict
+
+				for entryFileName in list(packageManifestLooseDictionary.keys()):  # type: str
+					entryChangeTime = packageManifestLooseDictionary[entryFileName]  # type: float
+
 					entryFilePath = os.path.join(package.SourceLoosePath, entryFileName)  # type: str
 
-					if not os.path.exists(entryFilePath):
+					# noinspection SpellCheckingInspection
+					if not os.path.exists(entryFilePath) or os.path.splitext(entryFileName)[1].lower() == ".sourceinfo":
+						packageManifestLooseDictionary.pop(entryFileName)
 						filesChanged = True
 						continue
 
@@ -56,7 +62,11 @@ def BuildPackageChanges () -> bool:
 						packageManifest["Loose"][entryFileName] = entryCurrentChangeTime
 						filesChanged = True
 
-				for sourceFileName in os.listdir(package.SourceLoosePath):
+				for sourceFileName in os.listdir(package.SourceLoosePath):  # type: str
+					# noinspection SpellCheckingInspection
+					if os.path.splitext(sourceFileName)[1].lower() == ".sourceinfo":
+						continue
+
 					sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)  # type: str
 
 					if os.path.isfile(sourceFilePath):
@@ -72,19 +82,26 @@ def BuildPackageChanges () -> bool:
 							filesChanged = True
 
 			if filesChanged:
-				addingFiles = list()  # type: typing.List[str]
+				addingFilePaths = list()  # type: typing.List[str]
 
 				if loosePathExists:
 					for sourceFileName in os.listdir(package.SourceLoosePath):
-						addingFiles.append(os.path.join(package.SourceLoosePath, sourceFileName))
+						# noinspection SpellCheckingInspection
+						if os.path.splitext(sourceFileName)[1].lower() == ".sourceinfo":
+							continue
+
+						sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)  # type: str
+
+						if os.path.isfile(sourceFilePath):
+							addingFilePaths.append(sourceFilePath)
 
 				if baseFileExists:
 					Package.BuildPackage(package.BuildFilePath,
 										 baseFilePath = package.SourceBaseFilePath,
-										 addingFilePaths = addingFiles)
+										 addingFilePaths = addingFilePaths)
 				else:
 					Package.BuildPackage(package.BuildFilePath,
-										 addingFilePaths = addingFiles)
+										 addingFilePaths = addingFilePaths)
 
 				with open(package.BuildManifestFilePath, "w+") as packageManifestFile:
 					packageManifestFile.write(encoder.JSONEncoder(indent = "\t").encode(packageManifest))
@@ -108,7 +125,11 @@ def _BuildPackageEverythingInternal (package: Mod.Package) -> None:
 
 	if loosePathExists:
 		for sourceFileName in os.listdir(package.SourceLoosePath):
-			sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)
+			# noinspection SpellCheckingInspection
+			if os.path.splitext(sourceFileName)[1].lower() == ".sourceinfo":
+				continue
+
+			sourceFilePath = os.path.join(package.SourceLoosePath, sourceFileName)  # type: str
 
 			if os.path.isfile(sourceFilePath):
 				addingFilePaths.append(sourceFilePath)
@@ -123,7 +144,11 @@ def _BuildPackageEverythingInternal (package: Mod.Package) -> None:
 
 	packageManifest = dict()  # type: typing.Dict[str, typing.Union[float, typing.Dict[str, float]]]
 
-	packageManifest["Base"] = os.path.getmtime(package.SourceBaseFilePath)
+	if baseFileExists:
+		packageManifest["Base"] = os.path.getmtime(package.SourceBaseFilePath)
+	else:
+		packageManifest["Base"] = -1
+
 	packageManifest["Loose"] = dict()
 
 	for sourceFilePath in addingFilePaths:

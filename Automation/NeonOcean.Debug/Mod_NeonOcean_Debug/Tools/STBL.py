@@ -1,7 +1,7 @@
+import json
 import os
 import subprocess
 import typing
-import json
 from importlib import util
 from xml.sax import saxutils
 
@@ -121,10 +121,17 @@ def BuildSourceXML (buildFilePath: str, sourceDirectoryPath: str) -> None:
 	with open(buildFilePath, "w+") as buildFile:
 		buildFile.write(buildText)
 
-def CanBuildIdentifierXML () -> bool:
+def CanBuildIdentifiersXML () -> bool:
 	return True
 
-def BuildIdentifierXML (buildFilePath: str, sourceDirectoryPath: str) -> None:
+def GetIdentifiersFileName (identifierName: str) -> str:
+	return identifierName + ".xml"
+
+def GetIdentifiersSourceInfoFileName (identifierName: str) -> str:
+	# noinspection SpellCheckingInspection
+	return GetIdentifiersFileName(identifierName) + ".sourceinfo"
+
+def BuildIdentifiersXML (buildFilePath: str, sourceInfoFilePath: str, sourceDirectoryPath: str) -> None:
 	entries = list()  # type: typing.List[str]
 
 	keyDirectoryPath = os.path.join(sourceDirectoryPath, _keyDirectoryName)  # type: str
@@ -153,8 +160,9 @@ def BuildIdentifierXML (buildFilePath: str, sourceDirectoryPath: str) -> None:
 	with open(os.path.join(sourceDirectoryPath, "STBL.json")) as stblInformationFile:
 		stblInformation = json.JSONDecoder().decode(stblInformationFile.read())  # type: dict
 
-	identifiersFileInstance = stblInformation["Identifiers File"]["Instance"]  # type: str
 	identifiersFileName = stblInformation["Identifiers File"]["Name"]  # type: str
+	identifiersFileGroup = stblInformation["Identifiers File"]["Group"]  # type: str
+	identifiersFileInstance = stblInformation["Identifiers File"]["Instance"]  # type: str
 
 	identifierPrefix = stblInformation["Identifier Prefix"]  # type: str
 
@@ -183,8 +191,18 @@ def BuildIdentifierXML (buildFilePath: str, sourceDirectoryPath: str) -> None:
 	with open(buildFilePath, "w+") as buildFile:
 		buildFile.write(buildText)
 
-def GetIdentifierFileName (identifierGroup: str, identifierInstance: str, identifierName: str) -> str:
-	return "S4_7DF2169C_" + identifierGroup + "_" + identifierInstance + "_" + identifierName + "%%+_XML.xml"
+	# noinspection SpellCheckingInspection
+	sourceInfoFormatting = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<SourceInfo xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\n" \
+						   "\t<Name>{0}</Name>\n" \
+						   "\t<Type>{1}</Type>\n" \
+						   "\t<Group>{2}</Group>\n" \
+						   "\t<Instance>{3}</Instance>\n" \
+						   "</SourceInfo>"
+
+	sourceInfoText = sourceInfoFormatting.format(identifiersFileName, "7DF2169C", identifiersFileGroup, identifiersFileInstance)
+
+	with open(sourceInfoFilePath, "w+") as sourceInfoFile:
+		sourceInfoFile.write(sourceInfoText)
 
 def CanBuildSTBL () -> bool:
 	automationModule = util.find_spec("Automation")
@@ -212,8 +230,21 @@ def BuildSTBL (buildDirectoryPath: str, sourceFilePath: str) -> None:
 			if applicationFunction(application, buildDirectoryPath, sourceFilePath):
 				break
 
+def STBLSourceFilesExists (sourceNameTemplate: str, buildDirectoryPath: str) -> bool:
+	for languageName in _languageNames:  # type: str
+		languageName = languageName.replace(" ", "_")
+
+		languageSourceFilePath = os.path.join(buildDirectoryPath, sourceNameTemplate.format(languageName) + ".stbl")  # type: str
+		# noinspection SpellCheckingInspection
+		languageSourceInfoFilePath = languageSourceFilePath + ".sourceinfo"  # type: str
+
+		if not os.path.exists(languageSourceFilePath) or not os.path.exists(languageSourceInfoFilePath):
+			return False
+
+	return True
+
 def _BuildSTBLSTBLBuilder (application, buildDirectoryPath: str, sourceFilePath: str) -> bool:
-	stblBuilderExitCode = subprocess.call([application.ExecutablePath, "-t", buildDirectoryPath, "-s", sourceFilePath])  # type: int
+	stblBuilderExitCode = subprocess.call([application.ExecutablePath, "-t", buildDirectoryPath, "-s", sourceFilePath, "-p"])  # type: int
 
 	if stblBuilderExitCode != 0:
 		raise Exception("STBLBuilder failed to complete a task.")
@@ -221,7 +252,7 @@ def _BuildSTBLSTBLBuilder (application, buildDirectoryPath: str, sourceFilePath:
 	return True
 
 BuildSTBLApplications = {
-	"STBLBuilder": _BuildSTBLSTBLBuilder
+	"STBLBuilder-v1.1.0": _BuildSTBLSTBLBuilder
 }  # type: typing.Dict[str, typing.Callable]
 
 _languageNames = [
