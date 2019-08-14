@@ -1,13 +1,11 @@
 import os
-import subprocess
-import sys
 import shutil
-import time
+import sys
 import typing
 from distutils import dir_util
 
 from Mod_NeonOcean_Debug import Mod, Paths
-from Mod_NeonOcean_Debug.Building import Merging, Package, Python, STBL, Misc
+from Mod_NeonOcean_Debug.Building import Merging, Misc, Package, Python, STBL
 from Mod_NeonOcean_Debug.Publishing import Distribution
 from Mod_NeonOcean_Debug.Tools import Exceptions
 
@@ -40,16 +38,19 @@ def UpdateGameFiles () -> bool:
 	"""
 
 	try:
-		if os.path.exists(Mod.GetCurrentMod().UninstallPath):
-			uninstallExitCode = subprocess.call([Mod.GetCurrentMod().UninstallPath, "-s", "-p"])  # type: int
+		if os.path.exists(Mod.GetCurrentMod().UninstallFilesFilePath):
+			with open(Mod.GetCurrentMod().UninstallFilesFilePath) as uninstallFilesFile:
+				uninstallFiles = uninstallFilesFile.read().splitlines()  # type: typing.List[str]
 
-			if uninstallExitCode != 0:
-				print("Failed to uninstall previous version.", file = sys.stderr)
-				return False
+			for uninstallFile in uninstallFiles:  # type: str
+				uninstallFilePath = os.path.join(Paths.S4ModsPath, uninstallFile)  # type: str
+				os.remove(uninstallFilePath)
+	except Exception as e:
+		print("Failed to uninstall the previous mod version.\n" + \
+			  "Mod: '" + Mod.GetCurrentMod().Namespace + "'\n" + \
+			  Exceptions.FormatException(e), file = sys.stderr)
 
-			time.sleep(0.1)
-			os.remove(Mod.GetCurrentMod().UninstallPath)
-
+	try:
 		dir_util.copy_tree(Paths.BuildPath, Paths.S4ModsPath)
 	except Exception as e:
 		print("Failed to send mod to the Sims 4 mod folder.\n" + \

@@ -1,1 +1,0 @@
-If enabled, reports will be written to a single, chronological log file.

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<STBLXMLFile xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<DefaultLanguage>0</DefaultLanguage>
+	<STBLGroup>1064960003</STBLGroup>
+	<STBLInstance>506281346508016152</STBLInstance>
+	<STBLName>NeonOcean.Debug.STBL.System.{0:Underscored}</STBLName>
+	<BuildIdentifiers>true</BuildIdentifiers>
+	<IdentifiersGroup>1064960003</IdentifiersGroup>
+	<IdentifiersInstance>16357755639433845350</IdentifiersInstance>
+	<IdentifiersName>NeonOcean.Debug.STBL.System.Identifiers</IdentifiersName>
+	<Entries>
+		<STBLXMLEntry>
+			<Key>3445268442</Key>
+			<Identifier>NeonOcean.Debug.System.Debug.Write_Failure_Notification.Text</Identifier>
+			<English>Failed to write a debug file, this problem may make error reporting impossible.
+
+Error Information:
+{0.String}</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>4217606916</Key>
+			<Identifier>NeonOcean.Debug.System.Debug.Write_Failure_Notification.Title</Identifier>
+			<English>NeonOcean - Debug:
+Major Failure Detected</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>2821018436</Key>
+			<Identifier>NeonOcean.Debug.System.Interactions.Standard.Documentation.Display_Name</Identifier>
+			<English>Documentation</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3176452547</Key>
+			<Identifier>NeonOcean.Debug.System.Interactions.Standard.Reset.Display_Name</Identifier>
+			<English>Reset</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3680294701</Key>
+			<Identifier>NeonOcean.Debug.System.Interactions.Standard.Visit_Mod_Page.Display_Name</Identifier>
+			<English>Visit mod page</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>2118578293</Key>
+			<Identifier>NeonOcean.Debug.System.Interaction_Categories.Debug</Identifier>
+			<English>Debug</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>1849235357</Key>
+			<Identifier>NeonOcean.Debug.System.Interaction_Categories.ModSettings</Identifier>
+			<English>Mod Settings</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3388627950</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Boolean.False</Identifier>
+			<English>Disabled</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>1430015641</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Boolean.True</Identifier>
+			<English>Enabled</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>1942598770</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.LogLevels.Debug</Identifier>
+			<English>Debug</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>1289385637</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.LogLevels.Error</Identifier>
+			<English>Error</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3516760786</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.LogLevels.Exception</Identifier>
+			<English>Exception</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3893653617</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.LogLevels.Info</Identifier>
+			<English>Info</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>626226195</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.LogLevels.Warning</Identifier>
+			<English>Warning</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3389084731</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Logging_Enabled.Description</Identifier>
+			<English>Prevents reports from being written to the log if disabled.</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>1484912679</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Logging_Enabled.Name</Identifier>
+			<English>Logging Enabled</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>4071580620</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Log_Interval.Description</Identifier>
+			<English>The time in seconds between when reports are written. When this setting is zero, all reports will be logged as soon as possible. Very low values may be interpreted as zero.</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>1325631112</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Log_Interval.Name</Identifier>
+			<English>Log Interval</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>4030352865</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Log_Level.Description</Identifier>
+			<English>Any reports less serious than this will be ignored. Using info or debug can cause large files to build up, they are not recommended to be used by regular users.</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3493410752</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Log_Level.Name</Identifier>
+			<English>Log Level</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>4095865771</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Write_Chronological.Description</Identifier>
+			<English>If enabled, reports will be written to a single, chronological log file.</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>1853319079</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Write_Chronological.Name</Identifier>
+			<English>Write Chronological Log</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>2896459538</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Write_Groups.Description</Identifier>
+			<English>If enabled, reports will be separated into different log files based on their specified group.</English>
+		</STBLXMLEntry>
+		<STBLXMLEntry>
+			<Key>3345486662</Key>
+			<Identifier>NeonOcean.Debug.System.Settings.Values.Write_Groups.Name</Identifier>
+			<English>Write Groups Log</English>
+		</STBLXMLEntry>
+	</Entries>
+</STBLXMLFile>

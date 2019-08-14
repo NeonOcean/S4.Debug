@@ -45,6 +45,7 @@ class Mod:
 			self.PythonSourceExcludedFiles[pythonExcludedFileIndex] = os.path.normpath(os.path.join(self.PythonSourceTargetPath, self.PythonSourceExcludedFiles[pythonExcludedFileIndex]))
 
 		self.UninstallPath = os.path.join(Paths.S4ModsPath, informationDictionary["Uninstall"])  # type: str
+		self.UninstallFilesFilePath = os.path.join(Paths.S4ModsPath, informationDictionary["UninstallFiles"])  # type: str
 
 	def GetModVersion (self) -> str:
 		with open(os.path.join(Paths.LoosePath, self.Namespace, "NeonOcean-Mod-" + self.Name + ".json")) as informationFile:

@@ -19,5 +19,6 @@
 		"Source Excluded": [],
 		"Merge Root": "NeonOcean.Debug"
 	},
-	"Uninstall": "NeonOcean.Debug/Uninstall.exe"
+	"Uninstall": "NeonOcean.Debug/Uninstall.exe",
+	"UninstallFiles": "NeonOcean.Debug/Files.txt"
 }

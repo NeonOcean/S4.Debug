@@ -1,147 +1,152 @@
-import os
 import json
+import os
+import shutil
+import sys
+import typing
+from distutils import dir_util
 
 from Mod_NeonOcean_Debug import Mod
-from Mod_NeonOcean_Debug.Tools import STBL
+from Mod_NeonOcean_Debug.Tools import Exceptions, STBL
+
+ManifestBuiltModifiedTimeKey = "BuiltModifiedTime"  # type: str
+ManifestBuiltFileNamesKey = "BuiltFileNames"  # type: str
 
 def BuildSTBLChanges () -> bool:
-	canBuildSourceXML = STBL.CanBuildSourceXML()  # type: bool
-	canBuildIdentifiersXML = STBL.CanBuildIdentifiersXML()  # type: bool
 	canBuildSTBL = STBL.CanBuildSTBL()  # type: bool
 
-	if not canBuildSourceXML or not canBuildIdentifiersXML or not canBuildSTBL:
+	if not canBuildSTBL:
 		return False
 
 	for package in Mod.GetCurrentMod().Packages:  # type: Mod.Package
-		if not os.path.exists(package.STBLSourcePath):
+		if not os.path.exists(package.STBLPath):
 			continue
 
-		buildSTBLSources = False  # type: bool
+		for stblXMLFileName in os.listdir(package.STBLPath):  # type: str
+			stblXMLFilePath = os.path.join(package.STBLPath, stblXMLFileName)  # type: str
 
-		for sourceName in os.listdir(package.STBLSourcePath):  # type: str
-			sourceDirectoryPath = os.path.join(package.STBLSourcePath, sourceName)  # type: str
+			if os.path.isfile(stblXMLFilePath) and os.path.splitext(stblXMLFileName)[1].casefold() == ".xml":
+				manifestFilePath = os.path.splitext(stblXMLFilePath)[0] + "_Manifest.json"  # type: str
 
-			if os.path.isdir(sourceDirectoryPath):
-				if not STBL.ValidSTBLDirectory(sourceDirectoryPath):
-					continue
+				modifiedTime = os.path.getmtime(stblXMLFilePath)  # type: float
+				builtModifiedTime = None  # type: typing.Optional[int]
+				builtFileNames = list()  # type: typing.List[str]
 
-				with open(os.path.join(sourceDirectoryPath, "STBL.json")) as stblInformationFile:
-					stblInformation = json.JSONDecoder().decode(stblInformationFile.read())  # type: dict
+				try:
+					if os.path.exists(manifestFilePath):
+						with open(manifestFilePath) as manifestFile:
+							manifest = json.JSONDecoder().decode(manifestFile.read())  # type: typing.Dict[str, typing.Any]
 
-				stblSourceFileName = stblInformation["Source File"]["Name"]  # type: str
+						if not isinstance(manifest, dict):
+							raise Exceptions.IncorrectTypeException(manifest, "Root", (dict,))
 
-				if not STBL.STBLSourceFilesExists(stblSourceFileName, package.SourceLoosePath):
-					buildSTBLSources = True
+						if ManifestBuiltModifiedTimeKey in manifest:
+							builtModifiedTime = manifest[ManifestBuiltModifiedTimeKey]
 
-				sourceBuildFilePath = os.path.join(package.STBLBuildPath, os.path.splitext(sourceName)[0] + ".xml")  # type: str
+						if not isinstance(builtModifiedTime, float) and not isinstance(builtModifiedTime, int):
+							incorrectValue = builtModifiedTime  # type: typing.Any
+							builtModifiedTime = None
+							raise Exceptions.IncorrectTypeException(incorrectValue, "Root[%s]" % ManifestBuiltModifiedTimeKey, (dict,))
 
-				if not os.path.exists(sourceBuildFilePath):
-					STBL.BuildSourceXML(sourceBuildFilePath, sourceDirectoryPath)
-					buildSTBLSources = True
-				else:
-					sourceTempFilePath = os.path.splitext(sourceBuildFilePath)[0] + ".temp"
+						if ManifestBuiltFileNamesKey in manifest:
+							builtFileNames = manifest[ManifestBuiltFileNamesKey]
 
-					STBL.BuildSourceXML(sourceTempFilePath, sourceDirectoryPath)
+						if not isinstance(builtFileNames, list):
+							incorrectValue = builtFileNames  # type: typing.Any
+							builtFileNames = list()
+							raise Exceptions.IncorrectTypeException(incorrectValue, "Root[%s]" % ManifestBuiltFileNamesKey, (dict,))
 
-					with open(sourceBuildFilePath, newline = "") as sourceBuildFile:
-						currentSourceBuild = sourceBuildFile.read()
+						for builtFileNameIndex in range(len(builtFileNames)):  # type: int
+							builtFileName = builtFileNames[builtFileNameIndex]  # type: str
 
-					with open(sourceTempFilePath, newline = "") as sourceTempFile:
-						newSourceBuild = sourceTempFile.read()
+							if not isinstance(builtFileName, str):
+								builtFileNames = list()
+								raise Exceptions.IncorrectTypeException(builtFileName, "Root[%s][%s]" % (ManifestBuiltFileNamesKey, builtFileNameIndex), (dict,))
 
-						if currentSourceBuild != newSourceBuild:
-							with open(sourceBuildFilePath, "w+", newline = "") as sourceBuildFile:
-								sourceBuildFile.write(newSourceBuild)
+				except Exception as e:
+					print("Failed to read STBL manifest file at '" + manifestFilePath + "'\n" + str(e), file = sys.stderr)
 
-							buildSTBLSources = True
+				missingBuiltFile = False  # type: bool
 
-					os.remove(sourceTempFilePath)
+				for builtFileName in builtFileNames:
+					builtFilePath = os.path.join(package.SourceLoosePath, builtFileName)  # type: str
 
-				identifiersFileName = stblInformation["Identifiers File"]["Name"]   # type: str
+					if not os.path.exists(builtFilePath):
+						missingBuiltFile = True
+						break
 
-				identifiersBuildFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersFileName(identifiersFileName))  # type: str
-				identifiersSourceInfoBuildFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersSourceInfoFileName(identifiersFileName))  # type: str
+				if missingBuiltFile or modifiedTime != builtModifiedTime:
+					buildTempDirectory = stblXMLFilePath + "_Temp_Build"  # type: str
 
-				if not os.path.exists(identifiersBuildFilePath) or not os.path.exists(identifiersSourceInfoBuildFilePath):
-					STBL.BuildIdentifiersXML(identifiersBuildFilePath, identifiersSourceInfoBuildFilePath, sourceDirectoryPath)
-				else:
-					identifiersTempFilePath = identifiersBuildFilePath + ".temp"
-					identifiersSourceInfoTempFilePath = identifiersSourceInfoBuildFilePath + ".temp"  # type: str
+					if not os.path.exists(buildTempDirectory):
+						os.makedirs(buildTempDirectory)
 
-					STBL.BuildIdentifiersXML(identifiersTempFilePath, identifiersSourceInfoTempFilePath, sourceDirectoryPath)
+					try:
+						STBL.BuildSTBL(buildTempDirectory, stblXMLFilePath)
 
-					with open(identifiersBuildFilePath, newline = "") as identifiersBuildFile:
-						currentIdentifiersBuild = identifiersBuildFile.read()
+						manifest = dict()  # type: typing.Dict[str, typing.Any]
 
-					with open(identifiersTempFilePath, newline = "") as identifiersTempFile:
-						newIdentifiersBuild = identifiersTempFile.read()
+						manifest[ManifestBuiltModifiedTimeKey] = modifiedTime
+						builtFileNames = list()
 
-					if currentIdentifiersBuild != newIdentifiersBuild:
-						with open(identifiersBuildFilePath, "w+", newline = "") as identifiersBuildFile:
-							identifiersBuildFile.write(newIdentifiersBuild)
+						for builtFileName in os.listdir(buildTempDirectory):
+							builtFilePath = os.path.join(buildTempDirectory, builtFileName)
 
-						buildSTBLSources = True
+							if os.path.isfile(builtFilePath):
+								builtFileNames.append(builtFileName)
 
-					with open(identifiersSourceInfoBuildFilePath, newline = "") as identifiersSourceInfoBuildFile:
-						currentIdentifiersSourceInfoBuild = identifiersSourceInfoBuildFile.read()
+						manifest[ManifestBuiltFileNamesKey] = builtFileNames
 
-					with open(identifiersSourceInfoTempFilePath, newline = "") as identifiersSourceInfoTempFile:
-						newIdentifiersSourceInfoBuild = identifiersSourceInfoTempFile.read()
+						with open(manifestFilePath, "w+") as manifestFile:
+							manifestFile.write(json.JSONEncoder(indent = "\t").encode(manifest))
 
-					if currentIdentifiersSourceInfoBuild != newIdentifiersSourceInfoBuild:
-						with open(identifiersSourceInfoBuildFilePath, "w+", newline = "") as identifiersSourceInfoBuildFile:
-							identifiersSourceInfoBuildFile.write(newIdentifiersSourceInfoBuild)
-
-						buildSTBLSources = True
-
-					os.remove(identifiersTempFilePath)
-					os.remove(identifiersSourceInfoTempFilePath)
-
-		if buildSTBLSources and os.path.exists(package.STBLBuildPath):
-			for stblXMLFileName in os.listdir(package.STBLBuildPath):  # type: str
-				stblXMLFilePath = os.path.join(package.STBLBuildPath, stblXMLFileName)  # type: str
-
-				if os.path.isfile(stblXMLFilePath) and os.path.splitext(stblXMLFileName)[1].casefold() == ".xml":
-					STBL.BuildSTBL(package.SourceLoosePath, stblXMLFilePath)
+						dir_util.copy_tree(buildTempDirectory, package.SourceLoosePath)
+					finally:
+						shutil.rmtree(buildTempDirectory)
 
 	return True
 
 def BuildSTBLEverything () -> bool:
-	canBuildSourceXML = STBL.CanBuildSourceXML()  # type: bool
-	canBuildIdentifiersXML = STBL.CanBuildIdentifiersXML()  # type: bool
 	canBuildSTBL = STBL.CanBuildSTBL()  # type: bool
 
-	if not canBuildSourceXML or not canBuildIdentifiersXML or not canBuildSTBL:
+	if not canBuildSTBL:
 		return False
 
 	for package in Mod.GetCurrentMod().Packages:  # type: Mod.Package
-		if os.path.exists(package.STBLSourcePath):
-			for sourceName in os.listdir(package.STBLSourcePath):  # type: str
-				sourceDirectoryPath = os.path.join(package.STBLSourcePath, sourceName)  # type: str
+		if not os.path.exists(package.STBLPath):
+			continue
 
-				if os.path.isdir(sourceDirectoryPath):
-					if not STBL.ValidSTBLDirectory(sourceDirectoryPath):
-						continue
+		for stblXMLFileName in os.listdir(package.STBLPath):  # type: str
+			stblXMLFilePath = os.path.join(package.STBLPath, stblXMLFileName)  # type: str
 
-					sourceBuildFilePath = os.path.join(package.STBLBuildPath, os.path.splitext(sourceName)[0] + ".xml")  # type: str
+			if os.path.isfile(stblXMLFilePath) and os.path.splitext(stblXMLFileName)[1].casefold() == ".xml":
+				modifiedTime = os.path.getmtime(stblXMLFilePath)  # type: float
+				manifestFilePath = os.path.splitext(stblXMLFilePath)[0] + "_Manifest.json"  # type: str
 
-					STBL.BuildSourceXML(sourceBuildFilePath, sourceDirectoryPath)
+				buildTempDirectory = stblXMLFilePath + "_Temp_Build"  # type: str
 
-					with open(os.path.join(sourceDirectoryPath, "STBL.json")) as stblInformationFile:
-						stblInformation = json.JSONDecoder().decode(stblInformationFile.read())  # type: dict
+				if not os.path.exists(buildTempDirectory):
+					os.makedirs(buildTempDirectory)
+				try:
+					STBL.BuildSTBL(buildTempDirectory, stblXMLFilePath)
 
-					identifiersFileName = stblInformation["Identifiers File"]["Name"]  # type: str
+					manifest = dict()  # type: typing.Dict[str, typing.Any]
 
-					identifiersBuildFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersFileName(identifiersFileName))  # type: str
-					identifiersSourceInfoFilePath = os.path.join(package.SourceLoosePath, STBL.GetIdentifiersSourceInfoFileName(identifiersFileName))  # type: str
+					manifest[ManifestBuiltModifiedTimeKey] = modifiedTime
+					builtFileNames = list()
 
-					STBL.BuildIdentifiersXML(identifiersBuildFilePath, identifiersSourceInfoFilePath, sourceDirectoryPath)
+					for builtFileName in os.listdir(buildTempDirectory):
+						builtFilePath = os.path.join(buildTempDirectory, builtFileName)
 
-		if os.path.exists(package.STBLBuildPath):
-			for stblXMLFileName in os.listdir(package.STBLBuildPath):  # type: str
-				stblXMLFilePath = os.path.join(package.STBLBuildPath, stblXMLFileName)  # type: str
+						if os.path.isfile(builtFilePath):
+							builtFileNames.append(builtFileName)
 
-				if os.path.isfile(stblXMLFilePath) and os.path.splitext(stblXMLFileName)[1].casefold() == ".xml":
-					STBL.BuildSTBL(package.SourceLoosePath, stblXMLFilePath)
+					manifest[ManifestBuiltFileNamesKey] = builtFileNames
+
+					with open(manifestFilePath, "w+") as manifestFile:
+						manifestFile.write(json.JSONEncoder(indent = "\t").encode(manifest))
+
+					dir_util.copy_tree(buildTempDirectory, package.SourceLoosePath)
+				finally:
+					shutil.rmtree(buildTempDirectory)
 
 	return True

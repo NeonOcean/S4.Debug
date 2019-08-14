@@ -1,6 +1,7 @@
-import json
+import sys
 import os
 import typing
+from xml.etree import ElementTree
 
 from Mod_NeonOcean_Debug import Mod
 
@@ -11,71 +12,32 @@ def GetEntries () -> typing.List[typing.Tuple[str, int]]:
 		if not os.path.exists(package.STBLPath):
 			continue
 
-		if os.path.exists(package.STBLSourcePath):
-			for sourceName in os.listdir(package.STBLSourcePath):  # type: str
-				sourceDirectoryPath = os.path.join(package.STBLSourcePath, sourceName)
+		if os.path.exists(package.STBLPath):
+			for stblXMLFileName in os.listdir(package.STBLPath):  # type: str
+				stblXMLFilePath = os.path.join(package.STBLPath, stblXMLFileName)  # type: str
 
-				with open(os.path.join(sourceDirectoryPath, "STBL.json")) as stblInformationFile:
-					stblInformation = json.JSONDecoder().decode(stblInformationFile.read())  # type: dict
+				if os.path.isfile(stblXMLFilePath) and os.path.splitext(stblXMLFileName)[1].casefold() == ".xml":
+					try:
+						stblXMLFile = ElementTree.parse(stblXMLFilePath)  # type: ElementTree.ElementTree
+						entriesElements = stblXMLFile.findall("Entries/STBLXMLEntry")  # type: typing.Optional[typing.List[ElementTree.Element]]
 
-				identifierPrefix = stblInformation["Identifier Prefix"]  # type: str
+						if entriesElements is None:
+							continue
 
-				hashDirectoryPath = os.path.join(sourceDirectoryPath, _keyDirectoryName)  # type: str
+						for entryElement in entriesElements:  # type: ElementTree.Element
+							entryIdentifierElement = entryElement.find("Identifier")  # type: ElementTree.Element
+							entryKeyElement = entryElement.find("Key")  # type: ElementTree.Element
 
-				for entryName in os.listdir(hashDirectoryPath):  # type: str
-					entryName, entryExtension = os.path.splitext(entryName)  # type: str
+							if entryIdentifierElement is None or entryKeyElement is None:
+								continue
 
-					if entryExtension.lower() != ".txt":
+							entryIdentifier = entryIdentifierElement.text  # type: str
+							entryKeyText = entryKeyElement.text  # type: str
+							entryKey = int(entryKeyText)  # type: int
+
+							entries.append((entryIdentifier, entryKey))
+					except Exception as e:
+						print("Failed to read potential stbl xml file at '" + stblXMLFilePath + "'\n" + str(e), file = sys.stderr)
 						continue
 
-					entryHashPath = os.path.join(hashDirectoryPath, entryName) + ".txt"  # type: str
-
-					if os.path.exists(entryHashPath) and os.path.isfile(entryHashPath):
-						entryIsValid = True  # type: bool
-
-						for languageName in _languageNames:  # type: str
-							entryLanguagePath = os.path.join(package.STBLSourcePath, sourceName, languageName, entryName) + ".txt"  # type: str
-
-							if not os.path.exists(entryLanguagePath) or not os.path.isfile(entryLanguagePath):
-								entryIsValid = False
-
-						if entryIsValid:
-							with open(entryHashPath) as entryHashFile:
-								entryHashString = entryHashFile.read()  # type: str
-
-								try:
-									entryHash = int(entryHashString)  # type: int
-								except Exception as e:
-									raise Exception("Failed to read hash for entry '" + entryName + "'.") from e
-
-							entries.append((identifierPrefix + entryName, entryHash))
-
 	return entries
-
-_keyDirectoryName = "Keys"  # type: str
-
-_languageNames = [
-	"Chinese Simplified",
-	"Chinese Traditional",
-	"Czech",
-	"Danish",
-	"Dutch",
-	"English",
-	"Finnish",
-	"French",
-	"German",
-	"Greek",
-	"Hungarian",
-	"Italian",
-	"Japanese",
-	"Korean",
-	"Norwegian",
-	"Polish",
-	"Portuguese Brazil",
-	"Portuguese Portugal",
-	"Russian",
-	"Spanish Mexico",
-	"Spanish Spain",
-	"Swedish",
-	"Thai"
-]  # type: typing.List[str]
