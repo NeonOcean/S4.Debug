@@ -1,1 +1,2 @@
+NeonOcean.S4.Debug/Uninstall.exe
 NeonOcean.Debug/Uninstall.exe

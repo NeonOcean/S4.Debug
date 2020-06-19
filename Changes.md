@@ -1,3 +1,17 @@
+## v1.4.0 ()
+
+### New Features
+- Added new setting for imposing a size limit on log files.
+
+### Changes
+- Changed this mod's namespace from NeonOcean.Debug to NeonOcean.S4.Debug.
+- Added icons to some mod interactions and interaction categories.
+
+### Fixed bugs
+- Fixed mod documentation links.
+
+______________________________
+
 ### v1.3.0 (July 15, 2019)
 ### Changes
 - All of Debug's interactions will now only show up when clicking on Sims instead of everything.

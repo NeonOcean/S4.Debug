@@ -1,0 +1,25 @@
+[
+	{
+		"Level": -4995,
+		"Functions": [
+			{
+				"Module": "NeonOcean.S4.Main.Loading",
+				"Function": "DisableModAutoLoad",
+				"Arguments": [ "NeonOcean.S4.Debug" ],
+				"KeywordArguments": { }
+			}
+		]
+	},
+
+	{
+		"Level": -4900,
+		"Functions": [
+			{
+				"Module": "NeonOcean.S4.Main.Loading",
+				"Function": "LoadMod",
+				"Arguments": [ "NeonOcean.S4.Debug" ],
+				"KeywordArguments": { }
+			}
+		]
+	}
+]

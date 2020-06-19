@@ -4,9 +4,9 @@
 **/.idea/**/workspace.xml
 **/.idea/**/dictionaries
 
-Build
-Misc
-Packages/*/Build
-Publishing/Distribution
-Python/Build
-STBL/*/Build
+/Build
+/Information/Build
+/Misc
+/Packages/*/Build
+/Publishing/Distribution
+/Python/Build

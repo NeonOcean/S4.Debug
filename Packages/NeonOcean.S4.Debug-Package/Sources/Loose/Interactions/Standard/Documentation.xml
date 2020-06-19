@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<I n="NeonOcean_S4_Debug_Interactions_Standard_Documentation" s="8855739326776297552" i="interaction" m="NeonOcean.S4.Debug.Interactions.Standard" c="DocumentationInteraction">
+	<T n="display_name">2821018436</T>
+	<T n="category">9828540712044566059<!--PieMenuCategory: NeonOcean_S4_Debug_Interaction_Categories_Debug--></T>
+	<V n="_saveable" t="disabled" />
+	<L n="basic_extras">
+		<V t="do_command">
+			<U n="do_command">
+				<T n="command">neonocean.s4.debug.standard.documentation</T>
+			</U>
+		</V>
+	</L>
+	<L n="ObjectRegistrationInformation">
+		<V t="byType">
+			<U n="byType">
+				<L n="Types">
+					<T>Humans</T>
+				</L>
+			</U>
+		</V>
+	</L>
+</I>

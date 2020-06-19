@@ -1,0 +1,25 @@
+{
+	"Namespace": "NeonOcean.S4.Debug",
+	"Name": "Debug",
+	"Information": "NeonOcean.S4.Debug/NeonOcean.S4.Debug-NeonOcean-Mod.json",
+	"Packages": [
+		{
+			"FileName": "NeonOcean.S4.Debug-Package.package",
+			"MergeRoot": "NeonOcean.S4.Debug"
+		}
+	],
+	"Publishing": {
+		"InstallerFileName": "NeonOcean.S4.Debug-Installer-v{0}.exe",
+		"FilesFileName": "NeonOcean.S4.Debug-Files-v{0}.zip",
+		"SourcesFileName": "NeonOcean.S4.Debug-Sources-v{0}.zip"
+	},
+	"Python": {
+		"ArchiveFileName": "NeonOcean.S4.Debug.archive",
+		"SourceRoot": "",
+		"SourceTarget": "NeonOcean",
+		"SourceExcluded": [],
+		"MergeRoot": "NeonOcean.S4.Debug"
+	},
+	"Uninstall": "NeonOcean.S4.Debug/Uninstall.exe",
+	"UninstallFiles": "NeonOcean.S4.Debug/Files.txt"
+}

@@ -1,0 +1,31 @@
+{
+	"Namespace": "NeonOcean.S4.Debug",
+	"Name": "Debug",
+	"Author": "NeonOcean",
+	"Version": "1.4.0",
+	"Rating": "Normal",
+	"LoadController": "NeonOcean.S4.Main",
+	"Distribution": {
+		"UpdatesController": "NeonOcean",
+		"UpdatesFileURL": "http://dist.mods.neonoceancreations.com/mods/latest.json",
+		"DownloadURL": "https://www.neonoceancreations.com/mods/s4/debug",
+		"PreviewDownloadURL": "https://www.patreon.com/NeonOcean/posts?tag=Debug%20Preview"
+	},
+	"ScriptPaths": [
+		{
+			"Root": "Current",
+			"Path": "NeonOcean.S4.Debug.archive"
+		}
+	],
+	"RequiredMods": [
+		"NeonOcean.S4.Main"
+	],
+	"LoadAfter": [
+		"NeonOcean.S4.Main"
+	],
+	"Compatibility": {
+		"NeonOcean.S4.Main": {
+			"LowestVersion":  "2.0.0"
+		}
+	}
+}

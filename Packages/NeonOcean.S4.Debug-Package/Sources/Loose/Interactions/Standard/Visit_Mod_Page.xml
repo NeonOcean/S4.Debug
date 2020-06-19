@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<I n="NeonOcean_S4_Debug_Interactions_Standard_Visit_Mod_Page" s="2032621604668941827" i="interaction" m="NeonOcean.S4.Debug.Interactions.Standard" c="VisitModPageInteraction">
+	<T n="display_name">3680294701</T>
+	<T n="category">9828540712044566059<!--PieMenuCategory: NeonOcean_S4_Debug_Interaction_Categories_Debug--></T>
+	<V n="_saveable" t="disabled" />
+	<L n="basic_extras">
+		<V t="do_command">
+			<U n="do_command">
+				<T n="command">neonocean.s4.debug.standard.visit_mod_page</T>
+			</U>
+		</V>
+	</L>
+	<V n="pie_menu_icon" t="enabled">
+		<V n="enabled" t="resource_key">
+			<U n="resource_key">
+				<T n="key">00B2D882:00000000:666B974C96CA15F0</T>
+			</U>
+		</V>
+	</V>
+	<L n="ObjectRegistrationInformation">
+		<V t="byType">
+			<U n="byType">
+				<L n="Types">
+					<T>Humans</T>
+				</L>
+			</U>
+		</V>
+	</L>
+</I>
