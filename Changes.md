@@ -1,4 +1,4 @@
-## v1.4.0 ()
+## v1.4.0 (June 19, 2020)
 
 ### New Features
 - Added new setting for imposing a size limit on log files.
