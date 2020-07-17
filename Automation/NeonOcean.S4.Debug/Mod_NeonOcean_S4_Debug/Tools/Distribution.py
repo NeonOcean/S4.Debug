@@ -51,7 +51,7 @@ def CanSendToInstaller () -> bool:
 def SendToNOModInstaller (archiveFilePath: str, additionalDirectoryPath: str) -> None:
 	from Automation import Applications
 
-	installerApplication = Applications.GetApplication("NOModInstaller-v1.1.0")  # type: Applications.Application
+	installerApplication = Applications.GetApplication("NOModInstaller-v1.2.0")  # type: Applications.Application
 	installerSourceDirectoryPath = os.path.join(installerApplication.PointerDirectoryPath, os.path.dirname(installerApplication.Special))  # type: str
 	installerModDirectoryPath = os.path.join(installerSourceDirectoryPath, "Mod")
 
@@ -69,7 +69,7 @@ def SendToNOModInstaller (archiveFilePath: str, additionalDirectoryPath: str) ->
 def _BuildInstallerMSBuild (application, buildDirectoryPath: str, buildExecutableName: str) -> None:
 	from Automation import Applications
 
-	installerApplication = Applications.GetApplication("NOModInstaller-v1.1.0")  # type: Applications.Application
+	installerApplication = Applications.GetApplication("NOModInstaller-v1.2.0")  # type: Applications.Application
 	sourceProjectFilePath = os.path.join(installerApplication.PointerDirectoryPath, installerApplication.Special)  # type: str
 
 	msBuildExitCode = subprocess.call([application.ExecutablePath, sourceProjectFilePath, "-p:Configuration=Release;OutputPath=" + buildDirectoryPath + ";AssemblyName=" + buildExecutableName])  # type: int
