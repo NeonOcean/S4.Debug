@@ -1,0 +1,8 @@
+NeonOcean.S4.Debug.archive
+NeonOcean.S4.Debug-License.html
+NeonOcean.S4.Debug-NeonOcean-Load-Order.json
+NeonOcean.S4.Debug-NeonOcean-Mod.json
+NeonOcean.S4.Debug-Package.package
+NeonOcean.S4.Debug-Uninstall-Files.txt
+NeonOcean.S4.Debug-Uninstall.exe
+NeonOcean.S4.Debug-Uninstall.exe.config

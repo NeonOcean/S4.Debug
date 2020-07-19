@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-16"?>
+<FileListType xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<FilePaths />
+	<UniqueFileNames>
+		<string>NeonOcean.S4.Debug.archive</string>
+		<string>NeonOcean.S4.Debug-License.html</string>
+		<string>NeonOcean.S4.Debug-NeonOcean-Load-Order.json</string>
+		<string>NeonOcean.S4.Debug-NeonOcean-Mod.json</string>
+		<string>NeonOcean.S4.Debug-Package.package</string>
+		<string>NeonOcean.S4.Debug-Uninstall-Files.txt</string>
+		<string>NeonOcean.S4.Debug-Uninstall.exe</string>
+		<string>NeonOcean.S4.Debug-Uninstall.exe.config</string>
+	</UniqueFileNames>
+</FileListType>

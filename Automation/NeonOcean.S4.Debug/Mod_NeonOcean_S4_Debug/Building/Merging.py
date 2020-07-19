@@ -14,7 +14,7 @@ def Merge () -> bool:
 	_MergePython()
 	_MergePackage()
 
-	_BuildManifest()
+	#_BuildManifest()
 
 	return True
 
@@ -40,4 +40,4 @@ def _MergePackage () -> None:
 			shutil.copy(package.BuildFilePath, package.MergeRoot)
 
 def _BuildManifest () -> None:
-	Merging.BuildManifest(os.path.join(Mod.GetCurrentMod().Namespace, "Files.txt"), Paths.BuildPath)
+	Merging.BuildManifest(os.path.join(Mod.GetCurrentMod().Namespace, Mod.GetCurrentMod().Namespace + "-Uninstall-Files.txt"), Paths.BuildPath)

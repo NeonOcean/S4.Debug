@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfUninstallerPath>
+	<UninstallerPath>
+		<Path>NeonOcean.S4.Debug/Uninstall.exe</Path>
+		<Type>RelativeToMods</Type>
+	</UninstallerPath>
+	<UninstallerPath>
+		<Path>NeonOcean.S4.Debug-Uninstall.exe</Path>
+		<Type>UniqueFileName</Type>
+	</UninstallerPath>
+</ArrayOfUninstallerPath>
