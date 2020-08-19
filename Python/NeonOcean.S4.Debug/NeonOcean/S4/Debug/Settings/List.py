@@ -18,7 +18,7 @@ class SettingsList(UISettingsList.SettingsList):
 
 	def _GetTitleListPathText (self, listPath: str) -> localization.LocalizedString:
 		listPathIdentifier = listPath.replace(self.ListPathSeparator, "_")  # type: str
-		fallbackText = "List.Paths" + listPathIdentifier + ".Title"  # type: str
+		fallbackText = "List.Paths." + listPathIdentifier + ".Title"  # type: str
 		return Language.GetLocalizationStringByIdentifier(This.Mod.Namespace + ".Mod_Settings.List.Paths." + listPathIdentifier + ".Title", fallbackText = fallbackText)
 
 	def _GetDescriptionText (self, listPath: str) -> localization.LocalizedString:
