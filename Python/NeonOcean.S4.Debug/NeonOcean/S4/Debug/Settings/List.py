@@ -14,7 +14,7 @@ class SettingsList(UISettingsList.SettingsList):
 	TitleStandard = Language.String(This.Mod.Namespace + ".Mod_Settings.List.Title")  # type: Language.String
 
 	def _GetTitleText (self, listPath: str) -> localization.LocalizedString:
-		return self._GetTitleStandardText()
+		return self._GetTitleListPathText(listPath)
 
 	def _GetTitleListPathText (self, listPath: str) -> localization.LocalizedString:
 		listPathIdentifier = listPath.replace(self.ListPathSeparator, "_")  # type: str

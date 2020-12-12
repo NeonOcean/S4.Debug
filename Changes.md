@@ -1,3 +1,9 @@
+## v1.5.0 (December 12, 2020)
+
+- Added support for Main's new bug reporting feature.
+
+______________________________
+
 ## v1.4.0 (June 19, 2020)
 
 ### New Features

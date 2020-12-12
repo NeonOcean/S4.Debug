@@ -2,7 +2,7 @@
 	"Namespace": "NeonOcean.S4.Debug",
 	"Name": "Debug",
 	"Author": "NeonOcean",
-	"Version": "1.4.0",
+	"Version": "1.5.0",
 	"Rating": "Normal",
 	"LoadController": "NeonOcean.S4.Main",
 	"Distribution": {
@@ -25,7 +25,7 @@
 	],
 	"Compatibility": {
 		"NeonOcean.S4.Main": {
-			"LowestVersion":  "2.0.0"
+			"LowestVersion":  "2.2.0"
 		}
 	}
 }

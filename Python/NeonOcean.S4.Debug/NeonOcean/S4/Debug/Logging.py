@@ -12,8 +12,8 @@ import typing
 import singletons
 from NeonOcean.S4.Debug import Settings, This
 from NeonOcean.S4.Debug.Settings import Base as SettingsBase
-from NeonOcean.S4.Main import Debug, DebugShared, Language, LoadingShared, Paths
-from NeonOcean.S4.Main.Tools import Exceptions, Parse, Patcher, Timer
+from NeonOcean.S4.Main import Debug, DebugShared, Language, LoadingShared, Paths, Reporting
+from NeonOcean.S4.Main.Tools import Exceptions, Parse, Patcher, Timer, Python
 from sims4 import log
 
 _preload = True  # type: bool
@@ -96,6 +96,58 @@ class _Logger(DebugShared.Logger):
 
 	def GetLogSizeLimit (self) -> int:
 		return int(_logSizeLimit * 1000000)
+
+	def GetLogFilesToBeReported (self) -> typing.List[str]:
+		"""
+		Get the logs to be included in a report archive file. This should be limited to only some of the more recent logs.
+		"""
+
+		reportingLogFiles = list()  # type: typing.List[str]
+
+		loggingRootPath = self.GetLoggingRootPath()  # type: str
+
+		reportingLogDirectories = list()  # type: typing.List[str]
+
+		latestLogFilePath = os.path.join(loggingRootPath, "Latest.xml")  # type: str
+
+		if os.path.exists(latestLogFilePath):
+			reportingLogFiles.append(latestLogFilePath)
+
+		for logDirectoryName in reversed(os.listdir(loggingRootPath)):  # type: str
+			if len(reportingLogDirectories) >= 10:
+				break
+
+			logDirectoryPath = os.path.join(loggingRootPath, logDirectoryName)  # type: str
+
+			if not os.path.isdir(logDirectoryPath):
+				continue
+
+			try:
+				datetime.datetime.strptime(logDirectoryName, "%Y-%m-%d %H.%M.%S.%f").timestamp()  # type: float
+			except ValueError:
+				Debug.Log("Found a directory in a logging namespace that did not meet the naming convention of 'Year-Month-Day Hour.Minute.Second.Microsecond'.\nDirectory Name: %s" % logDirectoryName,
+						  This.Mod.Namespace, Debug.LogLevels.Warning, group = This.Mod.Namespace, owner = __name__, lockIdentifier = __name__ + ":" + str(Python.GetLineNumber()), lockThreshold = 1)
+				continue
+
+			reportingLogDirectories.append(logDirectoryPath)
+
+		for reportingLogDirectory in reportingLogDirectories:  # type: str
+			reportingLogFilePath = os.path.join(reportingLogDirectory, "Log.xml")  # type: str
+
+			if os.path.exists(reportingLogFilePath):
+				reportingLogFiles.append(reportingLogFilePath)
+
+			reportingSessionFilePath = os.path.join(reportingLogDirectory, "Session.json")  # type: str
+
+			if os.path.exists(reportingSessionFilePath):
+				reportingLogFiles.append(reportingSessionFilePath)
+
+			reportingModFilePath = os.path.join(reportingLogDirectory, "Mods.txt")  # type: str
+
+			if os.path.exists(reportingModFilePath):
+				reportingLogFiles.append(reportingModFilePath)
+
+		return reportingLogFiles
 
 	def _FilterReports (self, reports: typing.List[DebugShared.Report]) -> typing.List[DebugShared.Report]:
 		def Filter (report: DebugShared.Report) -> bool:
@@ -274,6 +326,9 @@ def _Setup () -> None:
 
 	_logger = _Logger(os.path.join(Paths.DebugPath, "Logs"))
 
+def _DebugLogCollector () -> typing.List[str]:
+	return _logger.GetLogFilesToBeReported()
+
 def _OnStart (cause: LoadingShared.LoadingCauses) -> None:
 	global _preload, _loggingEnabled, _writeChronological, _writeGroups, _logLevel, _logInterval
 
@@ -298,6 +353,8 @@ def _OnStart (cause: LoadingShared.LoadingCauses) -> None:
 	_preload = False
 	_logger.Flush()
 
+	Reporting.RegisterReportFileCollector(_DebugLogCollector)
+
 def _OnStop (cause: LoadingShared.UnloadingCauses) -> None:
 	global _exiting
 
@@ -307,6 +364,8 @@ def _OnStop (cause: LoadingShared.UnloadingCauses) -> None:
 
 	if cause == LoadingShared.UnloadingCauses.Exiting:
 		_exiting = True
+
+	Reporting.UnregisterReportFileCollector(_DebugLogCollector)
 
 def _UpdateSettings () -> None:
 	global _loggingEnabled, _writeChronological, _writeGroups, _logLevel, _logInterval, _logSizeLimit
